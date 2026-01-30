@@ -13,8 +13,6 @@ Complete guide for running the Enterprise Data Operations Platform with Docker.
 
 ### 1. Verify Prerequisites
 
-### 1. Verify Prerequisites
-
 **PostgreSQL 18 (Windows):**
 
 ```powershell
@@ -279,4 +277,4 @@ docker system prune -a
 
 ---
 
-**Need help?** Check the main [README.md](README.md) or [QUICKSTART.md](QUICKSTART.md) for more information.
+**Need help?** Check the main [README.md](README.md) for more information.
