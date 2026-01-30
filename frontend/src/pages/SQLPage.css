@@ -1,0 +1,17 @@
+.sql-page {
+    height: 100%;
+    width: 100%;
+    padding: var(--spacing-md);
+    background: var(--color-bg-primary);
+    overflow: hidden;
+    /* Prevent page-level scroll */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure the editor consumes available space properly */
+.sql-editor-container {
+    flex: 1;
+    min-height: 0;
+    /* Allow container to shrink if needed */
+}

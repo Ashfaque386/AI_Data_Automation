@@ -1,0 +1,45 @@
+# Ignore Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Ignore Node
+node_modules/
+dist/
+.cache/
+
+# Ignore IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore env files
+.env
+.env.local
+
+# Ignore uploads and data
+uploads/
+data/
+*.duckdb
+*.duckdb.wal
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore OS
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts
+build/
+*.egg-info/
+
+/uploads

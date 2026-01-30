@@ -1,0 +1,225 @@
+/* Main container must fit within the parent 100% height/width */
+.sql-editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    /* Ensure it doesn't overflow the parent page */
+    max-height: 100%;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+    /* Internal elements scroll, not this container */
+    box-sizing: border-box;
+    /* Critical */
+}
+
+/* Header section - fixed height, no shrink */
+.sql-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    flex-shrink: 0;
+    /* Never shrink */
+    min-height: 60px;
+    /* Enforce minimum height */
+}
+
+.sql-editor-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Controls inside header */
+.sql-editor-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sql-editor-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.divider-vertical {
+    width: 1px;
+    height: 24px;
+    background-color: var(--color-border);
+}
+
+/* AI Input Panel - dynamic height */
+.ai-input-panel {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background-color: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+    animation: slideDown 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ai-input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.ai-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+/* SQL Query Input Area - Fixed or resizable, but currently fixed width in previous code? 
+   Wait, previous code had .sql-editor-input as a separate pane or just part of the flow?
+   It was .sql-editor-input { flex: 0 0 200px } which means fixed height.
+*/
+.sql-editor-input {
+    flex: 0 0 200px;
+    /* Fixed height for query editor */
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+    /* Never shrink */
+    display: flex;
+    flex-direction: column;
+}
+
+.sql-editor-input textarea {
+    width: 100%;
+    flex: 1;
+    padding: var(--spacing-md);
+    background: var(--color-bg-primary);
+    border: none;
+    color: var(--color-text-primary);
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Results Section - Takes remaining space */
+.sql-editor-results {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Allow shrinking below content size */
+    min-width: 0;
+    /* CSS Grid/Flex fix */
+    overflow: hidden;
+    /* Container itself hidden, inner scroll */
+    position: relative;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+}
+
+/* The actual scrollable area for the table */
+.result-table-container {
+    flex: 1;
+    overflow: auto;
+    /* Scrollbars appear here */
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.result-table {
+    width: max-content;
+    /* Allow table to grow beyond container width */
+    min-width: 100%;
+    /* At least 100% width */
+    font-size: 12px;
+    border-collapse: collapse;
+}
+
+.result-table th {
+    position: sticky;
+    /* Sticky headers */
+    top: 0;
+    background: var(--color-bg-tertiary);
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 2px solid var(--color-border);
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.result-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    max-width: 400px;
+    /* Optional: truncate very long cells */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-empty {
+    padding: var(--spacing-lg);
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+.result-error {
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.result-error pre {
+    background: var(--color-bg-primary);
+    padding: var(--spacing-md);
+    border-radius: 4px;
+    color: var(--color-error);
+    font-size: 12px;
+    overflow-x: auto;
+}
+
+.result-truncated {
+    padding: var(--spacing-sm);
+    text-align: center;
+    background: var(--color-bg-tertiary);
+    border-top: 1px solid var(--color-border);
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+}
+
+.btn-active {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
