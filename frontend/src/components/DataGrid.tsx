@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { datasetsApi } from '../services/api'
 import { editOperationsApi } from '../services/editOperationsApi'
+import { FormulaEditor } from './FormulaEditor'
 import './DataGrid.css'
 
 interface Column {
@@ -26,8 +27,51 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
     const [showFilters, setShowFilters] = useState(false)
     const [columnFilters, setColumnFilters] = useState<Map<string, string>>(new Map())
-    const [undoStack, setUndoStack] = useState<any[]>([])
-    const [redoStack, setRedoStack] = useState<any[]>([])
+
+    // Track uncommitted changes for Undo button
+    const { data: uncommittedChanges, refetch: refetchChanges } = useQuery({
+        queryKey: ['uncommitted-changes', datasetId, sessionId],
+        queryFn: async () => {
+            if (!sessionId) return { count: 0, changes: [] }
+            return await editOperationsApi.getUncommittedChanges(datasetId, sessionId)
+        },
+        enabled: !!sessionId && editMode,
+        refetchInterval: editMode ? 5000 : false
+    })
+
+    // Formula Editor State
+    const [showFormulaEditor, setShowFormulaEditor] = useState(false)
+    const [editingFormula, setEditingFormula] = useState<{ columnName: string, formula: string, dataType: string } | undefined>(undefined)
+
+    const handleSaveFormula = async (columnName: string, formula: string, dataType: string) => {
+        if (!sessionId) return
+        try {
+            if (editingFormula) {
+                await editOperationsApi.updateComputedColumn(datasetId, columnName, formula, dataType)
+                alert('Formula updated successfully!')
+            } else {
+                await editOperationsApi.addComputedColumn(datasetId, columnName, formula, dataType)
+                alert('Computed column added successfully!')
+            }
+            queryClient.invalidateQueries({ queryKey: ['dataset-data', datasetId] })
+            refetchChanges()
+        } catch (error: any) {
+            alert(`Failed to save formula: ${error.response?.data?.detail || error.message}`)
+            throw error // Re-throw to handle in editor if needed
+        }
+    }
+
+    const { data: datasetDetails } = useQuery({
+        queryKey: ['dataset-details', datasetId],
+        queryFn: async () => {
+            const response = await datasetsApi.get(datasetId)
+            return response.data
+        }
+    })
+
+    const isComputedColumn = (colName: string): boolean => {
+        return datasetDetails?.computed_columns && colName in datasetDetails.computed_columns
+    }
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['dataset-data', datasetId, page],
@@ -78,6 +122,16 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                                 title="Add new row"
                             >
                                 ➕ Add Row
+                            </button>
+                            <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => {
+                                    setEditingFormula(undefined)
+                                    setShowFormulaEditor(true)
+                                }}
+                                title="Add computed column with formula"
+                            >
+                                𝑓x Add Formula
                             </button>
                             <button
                                 className="btn btn-sm btn-primary"
@@ -175,30 +229,7 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                             )}
                         </>
                     )}
-                    {editMode && (
-                        <>
-                            <button
-                                className="btn btn-sm"
-                                onClick={() => {
-                                    alert('Undo: Backend integration pending')
-                                }}
-                                disabled={undoStack.length === 0}
-                                title="Undo last change"
-                            >
-                                ↶ Undo
-                            </button>
-                            <button
-                                className="btn btn-sm"
-                                onClick={() => {
-                                    alert('Redo: Backend integration pending')
-                                }}
-                                disabled={redoStack.length === 0}
-                                title="Redo last undone change"
-                            >
-                                ↷ Redo
-                            </button>
-                        </>
-                    )}
+
                     {editMode && (
                         <button
                             className="btn btn-sm btn-success"
@@ -305,7 +336,7 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                                         alert(`Failed to undo: ${error.response?.data?.detail || error.message}`)
                                     }
                                 }}
-                                disabled={undoStack.length === 0}
+                                disabled={!uncommittedChanges || uncommittedChanges.count === 0}
                                 title="Undo last change"
                             >
                                 ↶ Undo
@@ -313,13 +344,9 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                             <button
                                 className="btn btn-sm"
                                 onClick={() => {
-                                    if (redoStack.length === 0) {
-                                        alert('Nothing to redo')
-                                        return
-                                    }
                                     alert('Redo: Advanced implementation pending')
                                 }}
-                                disabled={redoStack.length === 0}
+                                disabled={true}
                                 title="Redo last undone change"
                             >
                                 ↷ Redo
@@ -380,6 +407,7 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                                     <div className="column-header">
                                         <div className="column-header-content">
                                             <span className="column-name">
+                                                {isComputedColumn(col.name) && <span className="formula-indicator" title="Computed Column">𝑓x</span>}
                                                 {col.name}
                                                 {sortColumn === col.name && (
                                                     <span className="sort-indicator">
@@ -414,14 +442,24 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                                                 className="column-action-btn"
                                                 onClick={(e) => {
                                                     e.stopPropagation()
-                                                    const newName = prompt('Enter new column name:', col.name)
-                                                    if (newName && newName !== col.name) {
-                                                        alert(`Rename column "${col.name}" to "${newName}": Backend integration pending`)
+                                                    if (isComputedColumn(col.name)) {
+                                                        const formulaInfo = datasetDetails.computed_columns[col.name]
+                                                        setEditingFormula({
+                                                            columnName: col.name,
+                                                            formula: formulaInfo.formula,
+                                                            dataType: formulaInfo.data_type
+                                                        })
+                                                        setShowFormulaEditor(true)
+                                                    } else {
+                                                        const newName = prompt('Enter new column name:', col.name)
+                                                        if (newName && newName !== col.name) {
+                                                            alert(`Rename column "${col.name}" to "${newName}": Backend integration pending`)
+                                                        }
                                                     }
                                                 }}
-                                                title="Rename column"
+                                                title={isComputedColumn(col.name) ? "Edit Formula" : "Rename column"}
                                             >
-                                                ✏️
+                                                {isComputedColumn(col.name) ? '𝑓x' : '✏️'}
                                             </button>
                                             <button
                                                 className="column-action-btn"
@@ -484,9 +522,9 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                                         return (
                                             <td
                                                 key={col.name}
-                                                className={`${isModified ? 'cell-modified' : ''}`}
+                                                className={`${isModified ? 'cell-modified' : ''} ${isComputedColumn(col.name) ? 'cell-computed' : ''}`}
                                                 onClick={() => {
-                                                    if (editMode && !isEditing) {
+                                                    if (editMode && !isEditing && !isComputedColumn(col.name)) {
                                                         setEditingCell({ rowIdx: idx, colName: col.name })
                                                     }
                                                 }}
@@ -564,6 +602,17 @@ export const DataGrid: React.FC<DataGridProps> = ({ datasetId, editMode = false,
                     </tbody>
                 </table>
             </div>
+
+            {showFormulaEditor && (
+                <FormulaEditor
+                    isOpen={showFormulaEditor}
+                    onClose={() => setShowFormulaEditor(false)}
+                    onSave={handleSaveFormula}
+                    existingFormula={editingFormula}
+                    availableColumns={data.columns.map((c: any) => c.name)}
+                    datasetId={datasetId}
+                />
+            )}
         </div>
     )
 }

@@ -485,3 +485,282 @@ async def get_uncommitted_changes(
             for change in changes
         ]
     }
+
+
+# Formula & Computed Columns
+class FormulaRequest(BaseModel):
+    column_name: str = Field(..., min_length=1, max_length=255)
+    formula: str = Field(..., min_length=2)
+    data_type: str = Field(default="string")
+
+
+class FormulaValidationRequest(BaseModel):
+    formula: str
+
+
+@router.post("/{dataset_id}/formulas")
+async def add_computed_column(
+    dataset_id: int,
+    formula_request: FormulaRequest = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Add a computed column with a formula.
+    """
+    from app.services.formula_parser import FormulaParser
+    
+    # Get dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # Get existing columns
+    from app.services.duckdb_service import DuckDBService
+    duckdb_service = DuckDBService()
+    columns = duckdb_service.get_table_columns(dataset.virtual_table_name)
+    column_names = [col['name'] for col in columns]
+    
+    # Parse and validate formula
+    parsed = FormulaParser.parse(formula_request.formula)
+    if not parsed.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid formula: {parsed.error}"
+        )
+    
+    # Validate dependencies exist
+    is_valid, error = FormulaParser.validate_dependencies(
+        formula_request.formula,
+        column_names
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    # Check for circular dependencies
+    existing_formulas = dataset.computed_columns or {}
+    has_cycle, cycle_path = FormulaParser.detect_circular_dependency(
+        formula_request.column_name,
+        formula_request.formula,
+        {k: v['formula'] for k, v in existing_formulas.items()}
+    )
+    if has_cycle:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Circular dependency detected: {' -> '.join(cycle_path)}"
+        )
+    
+    # Add computed column to dataset metadata
+    if not dataset.computed_columns:
+        dataset.computed_columns = {}
+    
+    dataset.computed_columns[formula_request.column_name] = {
+        "formula": formula_request.formula,
+        "data_type": formula_request.data_type,
+        "dependencies": list(parsed.dependencies)
+    }
+    
+    db.commit()
+    
+    return {
+        "message": "Computed column added successfully",
+        "column_name": formula_request.column_name,
+        "formula": formula_request.formula,
+        "dependencies": list(parsed.dependencies)
+    }
+
+
+@router.put("/{dataset_id}/formulas/{column_name}")
+async def update_computed_column(
+    dataset_id: int,
+    column_name: str,
+    formula_request: FormulaRequest = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing computed column formula.
+    """
+    from app.services.formula_parser import FormulaParser
+    
+    # Get dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # Check if computed column exists
+    if not dataset.computed_columns or column_name not in dataset.computed_columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Computed column '{column_name}' not found"
+        )
+    
+    # Get existing columns
+    from app.services.duckdb_service import DuckDBService
+    duckdb_service = DuckDBService()
+    columns = duckdb_service.get_table_columns(dataset.virtual_table_name)
+    column_names = [col['name'] for col in columns]
+    
+    # Parse and validate formula
+    parsed = FormulaParser.parse(formula_request.formula)
+    if not parsed.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid formula: {parsed.error}"
+        )
+    
+    # Validate dependencies
+    is_valid, error = FormulaParser.validate_dependencies(
+        formula_request.formula,
+        column_names
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+    
+    # Check for circular dependencies
+    existing_formulas = {k: v['formula'] for k, v in dataset.computed_columns.items() if k != column_name}
+    has_cycle, cycle_path = FormulaParser.detect_circular_dependency(
+        column_name,
+        formula_request.formula,
+        existing_formulas
+    )
+    if has_cycle:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Circular dependency detected: {' -> '.join(cycle_path)}"
+        )
+    
+    # Update formula
+    dataset.computed_columns[column_name] = {
+        "formula": formula_request.formula,
+        "data_type": formula_request.data_type,
+        "dependencies": list(parsed.dependencies)
+    }
+    
+    db.commit()
+    
+    return {
+        "message": "Computed column updated successfully",
+        "column_name": column_name,
+        "formula": formula_request.formula,
+        "dependencies": list(parsed.dependencies)
+    }
+
+
+@router.delete("/{dataset_id}/formulas/{column_name}")
+async def delete_computed_column(
+    dataset_id: int,
+    column_name: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a computed column.
+    """
+    # Get dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # Check if computed column exists
+    if not dataset.computed_columns or column_name not in dataset.computed_columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Computed column '{column_name}' not found"
+        )
+    
+    # Remove computed column
+    del dataset.computed_columns[column_name]
+    db.commit()
+    
+    return {
+        "message": "Computed column deleted successfully",
+        "column_name": column_name
+    }
+
+
+@router.post("/{dataset_id}/formulas/validate")
+async def validate_formula(
+    dataset_id: int,
+    validation_request: FormulaValidationRequest = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Validate a formula without creating a column.
+    """
+    from app.services.formula_parser import FormulaParser
+    
+    # Get dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # Get existing columns
+    from app.services.duckdb_service import DuckDBService
+    duckdb_service = DuckDBService()
+    columns = duckdb_service.get_table_columns(dataset.virtual_table_name)
+    column_names = [col['name'] for col in columns]
+    
+    # Parse formula
+    parsed = FormulaParser.parse(validation_request.formula)
+    
+    if not parsed.is_valid:
+        return {
+            "is_valid": False,
+            "error": parsed.error,
+            "dependencies": [],
+            "functions": []
+        }
+    
+    # Validate dependencies
+    is_valid, error = FormulaParser.validate_dependencies(
+        validation_request.formula,
+        column_names
+    )
+    
+    return {
+        "is_valid": is_valid,
+        "error": error,
+        "dependencies": list(parsed.dependencies),
+        "functions": list(parsed.functions)
+    }
+
+
+@router.get("/{dataset_id}/formulas/{column_name}/dependencies")
+async def get_formula_dependencies(
+    dataset_id: int,
+    column_name: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dependencies for a computed column.
+    """
+    # Get dataset
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    # Check if computed column exists
+    if not dataset.computed_columns or column_name not in dataset.computed_columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Computed column '{column_name}' not found"
+        )
+    
+    column_info = dataset.computed_columns[column_name]
+    
+    return {
+        "column_name": column_name,
+        "formula": column_info['formula'],
+        "dependencies": column_info.get('dependencies', []),
+        "data_type": column_info.get('data_type', 'string')
+    }
+

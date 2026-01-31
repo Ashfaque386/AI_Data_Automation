@@ -43,10 +43,7 @@ export const FilesPage: React.FC = () => {
     }
 
     const handleUpload = async (file: File) => {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        await datasetsApi.upload(formData)
+        await datasetsApi.upload(file)
     }
 
     const handleDelete = (id: number, name: string) => {

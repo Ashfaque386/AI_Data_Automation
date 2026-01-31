@@ -78,8 +78,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 setProgress(0)
                 onUploadSuccess?.()
             }, 500)
-        } catch (err) {
-            setError('Upload failed. Please try again.')
+        } catch (err: any) {
+            console.error('Upload error:', err)
+            const errorMessage = err.response?.data?.detail || err.message || 'Upload failed. Please try again.'
+            setError(errorMessage)
             setUploading(false)
         } finally {
             clearInterval(interval)

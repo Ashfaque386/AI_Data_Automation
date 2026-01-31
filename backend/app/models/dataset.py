@@ -52,6 +52,10 @@ class Dataset(Base):
     # Virtual table name in DuckDB
     virtual_table_name = Column(String(255), unique=True)
     
+    # Computed columns with formulas
+    # Structure: {"column_name": {"formula": "=SUM([Amount])", "data_type": "float", "dependencies": ["Amount"]}}
+    computed_columns = Column(JSON, default=dict)
+    
     # Ownership
     owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     is_public = Column(Boolean, default=False)

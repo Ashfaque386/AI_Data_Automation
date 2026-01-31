@@ -137,5 +137,35 @@ export const editOperationsApi = {
             params: { session_id: sessionId }
         })
         return data
+    },
+
+    // Formula Operations
+    addComputedColumn: async (datasetId: number, columnName: string, formula: string, dataType: string): Promise<any> => {
+        const { data } = await api.post(`/datasets/${datasetId}/formulas`, {
+            column_name: columnName,
+            formula,
+            data_type: dataType
+        })
+        return data
+    },
+
+    updateComputedColumn: async (datasetId: number, columnName: string, formula: string, dataType: string): Promise<any> => {
+        const { data } = await api.put(`/datasets/${datasetId}/formulas/${columnName}`, {
+            column_name: columnName,
+            formula,
+            data_type: dataType
+        })
+        return data
+    },
+
+    deleteComputedColumn: async (datasetId: number, columnName: string): Promise<void> => {
+        await api.delete(`/datasets/${datasetId}/formulas/${columnName}`)
+    },
+
+    validateFormula: async (datasetId: number, formula: string): Promise<any> => {
+        const { data } = await api.post(`/datasets/${datasetId}/formulas/validate`, {
+            formula
+        })
+        return data
     }
 }

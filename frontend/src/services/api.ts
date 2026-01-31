@@ -74,14 +74,11 @@ export const datasetsApi = {
     get: (id: number) =>
         api.get(`/datasets/${id}`),
 
-    upload: (formData: FormData) => {
-        // Extract file name from formData if possible or we need to pass it explicitly.
-        // But since we are changing the signature, let's keep it simple and just assume the caller handles the formData correctly
-        // Wait, the previous tool logic was to append 'name' to the API call.
-        // Let's change the signature to accept name.
-        const fileName = (formData.get('file') as File).name
+    upload: (file: File) => {
+        const formData = new FormData()
+        formData.append('file', file)
         return api.post('/datasets/upload', formData, {
-            params: { name: fileName }
+            params: { name: file.name }
         })
     },
 
