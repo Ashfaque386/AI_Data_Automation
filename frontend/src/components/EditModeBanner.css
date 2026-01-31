@@ -1,0 +1,37 @@
+/* Edit Mode Banner */
+.edit-mode-banner {
+    background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+    color: white;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    border-bottom: 2px solid #e64a19;
+    animation: slideDown 0.3s ease-out;
+}
+
+.banner-icon {
+    font-size: 20px;
+}
+
+.banner-text {
+    flex: 1;
+}
+
+.banner-text strong {
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

@@ -66,6 +66,9 @@ class Dataset(Base):
     columns = relationship("DatasetColumn", back_populates="dataset", cascade="all, delete-orphan")
     versions = relationship("DatasetVersion", back_populates="dataset", cascade="all, delete-orphan")
     permissions = relationship("DatasetPermission", back_populates="dataset", cascade="all, delete-orphan")
+    changes = relationship("DatasetChange", back_populates="dataset", cascade="all, delete-orphan")
+    lock = relationship("DatasetLock", back_populates="dataset", uselist=False, cascade="all, delete-orphan")
+
 
 
 class DatasetColumn(Base):

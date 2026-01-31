@@ -6,11 +6,14 @@ from app.models.dataset import Dataset, DatasetColumn, DatasetVersion, DatasetPe
 from app.models.audit import AuditLog, QueryHistory
 from app.models.job import ScheduledJob, JobExecution, JobType, JobStatus
 from app.models.ai_config import AIConfig
+from app.models.dataset_change import DatasetChange
+from app.models.dataset_lock import DatasetLock
 
 __all__ = [
     "User", "Role", "Permission", "RefreshToken",
     "Dataset", "DatasetColumn", "DatasetVersion", "DatasetPermission", "DatasetStatus", "ColumnType",
     "AuditLog", "QueryHistory",
     "ScheduledJob", "JobExecution", "JobType", "JobStatus",
-    "AIConfig"
+    "AIConfig",
+    "DatasetChange", "DatasetLock"
 ]
