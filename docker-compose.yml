@@ -22,6 +22,7 @@ services:
       - ./uploads:/app/uploads
       - ./data:/app/data
       - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
