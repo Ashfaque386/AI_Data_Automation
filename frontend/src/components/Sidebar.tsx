@@ -13,6 +13,7 @@ export const Sidebar: React.FC = () => {
         { path: '/files', label: 'Uploaded Files', icon: '📁' },
         { path: '/datasets', label: 'Data Sources', icon: '📊' },
         { path: '/sql', label: 'SQL Workspace', icon: '⚡' },
+        { path: '/import', label: 'Data Import', icon: '📥' },
         { path: '/jobs', label: 'Jobs & Schedulers', icon: '⏰' },
         { path: '/audit', label: 'Audit Logs', icon: '📋' },
         { path: '/settings', label: 'Settings', icon: '⚙️' },

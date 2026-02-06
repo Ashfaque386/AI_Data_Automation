@@ -6,6 +6,7 @@ import { Settings } from './pages/Settings'
 import { SQLPage } from './pages/SQLPage'
 import { DatasetsPage } from './pages/DatasetsPage'
 import { FilesPage } from './pages/FilesPage'
+import { DataImport } from './pages/DataImport'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { useAuthStore } from './store'
@@ -91,6 +92,14 @@ const App: React.FC = () => {
                             <ProtectedRoute>
                                 <div className="workspace-content" style={{ overflow: 'hidden' }}>
                                     <FilesPage />
+                                </div>
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/import" element={
+                            <ProtectedRoute>
+                                <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                    <DataImport />
                                 </div>
                             </ProtectedRoute>
                         } />

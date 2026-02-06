@@ -194,6 +194,10 @@ DEFAULT_PERMISSIONS = [
     {"name": "export:excel", "resource": "export", "action": "excel", "description": "Export to Excel"},
     {"name": "export:csv", "resource": "export", "action": "csv", "description": "Export to CSV"},
     {"name": "export:json", "resource": "export", "action": "json", "description": "Export to JSON"},
+    # Import permissions
+    {"name": "import:execute", "resource": "import", "action": "execute", "description": "Execute data imports"},
+    {"name": "import:view", "resource": "import", "action": "view", "description": "View import jobs and history"},
+    {"name": "import:configure", "resource": "import", "action": "configure", "description": "Configure import mappings"},
     # Admin permissions
     {"name": "admin:users", "resource": "admin", "action": "users", "description": "Manage users"},
     {"name": "admin:roles", "resource": "admin", "action": "roles", "description": "Manage roles"},
@@ -208,13 +212,15 @@ DEFAULT_ROLES = [
         "is_system": True,
         "permissions": ["dataset:read", "dataset:write", "dataset:delete", "dataset:share",
                        "sql:execute", "sql:write", "export:excel", "export:csv", "export:json",
+                       "import:execute", "import:view", "import:configure",
                        "admin:users", "admin:roles", "admin:audit", "admin:jobs"]
     },
     {
         "name": "analyst",
         "description": "Data analyst with read and SQL access",
         "is_system": True,
-        "permissions": ["dataset:read", "sql:execute", "export:excel", "export:csv", "export:json"]
+        "permissions": ["dataset:read", "sql:execute", "export:excel", "export:csv", "export:json",
+                       "import:view"]
     },
     {
         "name": "viewer",
@@ -226,7 +232,8 @@ DEFAULT_ROLES = [
         "name": "editor",
         "description": "Can read, write, and export data",
         "is_system": True,
-        "permissions": ["dataset:read", "dataset:write", "sql:execute", "export:excel", "export:csv"]
+        "permissions": ["dataset:read", "dataset:write", "sql:execute", "export:excel", "export:csv",
+                       "import:execute", "import:view", "import:configure"]
     }
 ]
 

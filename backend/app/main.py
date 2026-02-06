@@ -132,7 +132,7 @@ async def root():
 
 
 # Import and include routers
-from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations, connections
+from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations, connections, data_import
 
 # Setup router is always available
 app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
@@ -147,6 +147,8 @@ app.include_router(sql.router, prefix="/api/sql", tags=["SQL"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
 app.include_router(ai.router, prefix="/api/ai-legacy", tags=["AI (Legacy)"])
 app.include_router(ai_routes.router, prefix="/api/ai", tags=["AI Configuration"])
+app.include_router(data_import.router, prefix="/api/import", tags=["Data Import"])
+
 
 
 if __name__ == "__main__":

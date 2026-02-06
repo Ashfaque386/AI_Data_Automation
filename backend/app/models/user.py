@@ -45,6 +45,8 @@ class User(Base):
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     datasets = relationship("Dataset", back_populates="owner")
     audit_logs = relationship("AuditLog", back_populates="user")
+    import_jobs = relationship("ImportJob", back_populates="user")
+
     
     def verify_password(self, password: str) -> bool:
         """Verify password against hash."""
