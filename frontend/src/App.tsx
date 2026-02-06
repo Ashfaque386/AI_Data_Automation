@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Login } from './pages/Login'
 import { Home } from './pages/Home'
 import { Settings } from './pages/Settings'
@@ -21,12 +21,36 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <>{children}</>
 }
 
+// PersistentWrapper keeps the component mounted but hides it when not active
+const PersistentWrapper: React.FC<{
+    path: string;
+    activePath: string;
+    component: React.ReactNode
+}> = ({ path, activePath, component }) => {
+    // Check if the current active path starts with this path
+    // We use startsWith to handle sub-routes if any (though currently flat)
+    // Exact match is usually safer for tabs unless we have nested routing
+    const isActive = activePath === path || activePath.startsWith(path + '/')
+
+    return (
+        <div
+            style={{
+                display: isActive ? 'flex' : 'none',
+                flex: 1,
+                flexDirection: 'column',
+                height: '100%',
+                width: '100%',
+                overflow: 'hidden' // Container should not scroll, child workspace-content should
+            }}
+        >
+            {component}
+        </div>
+    )
+}
+
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuthStore()
-    // We still sync route to activePage for Sidebar highlighting if needed, 
-    // or we can refactor Sidebar to use useLocation. 
-    // For now, Sidebar uses store, so we might need to sync or refactor Sidebar.
-    // Let's refactor Sidebar later to rely on location or Link active state.
+    const location = useLocation()
 
     // Check auth status
     useEffect(() => {
@@ -43,6 +67,15 @@ const App: React.FC = () => {
             <div className="app-main">
                 {isAuthenticated && <TopBar />}
                 <div className="app-workspace">
+                    {/*
+                        ROUTER LOGIC:
+                        We keep the Routes for non-persistent pages (Login, Home, Settings)
+                        and for handling the "404" redirection logic.
+
+                        For persistent pages, we define a Route that renders NULL.
+                        This is critical so the Router knows "we are on a valid page"
+                        and doesn't trigger the "*" catch-all redirect.
+                    */}
                     <Routes>
                         <Route path="/login" element={
                             isAuthenticated ? <Navigate to="/" replace /> : <Login />
@@ -64,51 +97,74 @@ const App: React.FC = () => {
                             </ProtectedRoute>
                         } />
 
-                        <Route path="/sql" element={
-                            <ProtectedRoute>
-                                <div className="workspace-content" style={{ overflow: 'hidden' }}>
-                                    <SQLPage />
-                                </div>
-                            </ProtectedRoute>
-                        } />
-
-                        <Route path="/datasets" element={
-                            <ProtectedRoute>
-                                <div className="workspace-content" style={{ overflow: 'hidden' }}>
-                                    <DatasetsPage />
-                                </div>
-                            </ProtectedRoute>
-                        } />
-
-                        <Route path="/upload" element={
-                            <ProtectedRoute>
-                                <div className="workspace-content" style={{ overflow: 'hidden' }}>
-                                    <DatasetsPage />
-                                </div>
-                            </ProtectedRoute>
-                        } />
-
-                        <Route path="/files" element={
-                            <ProtectedRoute>
-                                <div className="workspace-content" style={{ overflow: 'hidden' }}>
-                                    <FilesPage />
-                                </div>
-                            </ProtectedRoute>
-                        } />
-
-                        <Route path="/import" element={
-                            <ProtectedRoute>
-                                <div className="workspace-content" style={{ overflow: 'auto' }}>
-                                    <DataImport />
-                                </div>
-                            </ProtectedRoute>
-                        } />
+                        {/*
+                           PERSISTENT ROUTES PLACEHOLDERS
+                           These render NOTHING to the DOM from the Router's perspective.
+                           The actual visible content is handled by PersistentWrapper below.
+                        */}
+                        <Route path="/sql" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/datasets" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/upload" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/files" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/import" element={<ProtectedRoute><></></ProtectedRoute>} />
 
                         <Route path="/jobs" element={<ProtectedRoute><div className="page-placeholder">Jobs (Coming Soon)</div></ProtectedRoute>} />
                         <Route path="/audit" element={<ProtectedRoute><div className="page-placeholder">Audit Logs (Coming Soon)</div></ProtectedRoute>} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
+
+                    {/*
+                        PERSISTENT VIEWS
+                        These are always mounted if authenticated, but hidden via CSS.
+                        This strictly preserves state (inputs, scroll, results) when switching tabs.
+                        Using flex: 1 and overflow: auto on the workspace-content ensures internal scrolling
+                        SQLPage manages its own scroll via SQLEditor (overflow: hidden on container)
+                        Others get overflow: auto for page scrolling
+                    */}
+                    {isAuthenticated && (
+                        <>
+                            <PersistentWrapper
+                                path="/sql"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'hidden' }}>
+                                        <SQLPage />
+                                    </div>
+                                }
+                            />
+
+                            <PersistentWrapper
+                                path="/datasets"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                        <DatasetsPage />
+                                    </div>
+                                }
+                            />
+
+                            <PersistentWrapper
+                                path="/files"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                        <FilesPage />
+                                    </div>
+                                }
+                            />
+
+                            <PersistentWrapper
+                                path="/import"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                        <DataImport />
+                                    </div>
+                                }
+                            />
+                        </>
+                    )}
                 </div>
             </div>
         </div>

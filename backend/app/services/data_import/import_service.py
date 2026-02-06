@@ -7,11 +7,14 @@ from datetime import datetime
 import pandas as pd
 from sqlalchemy.orm import Session
 import structlog
+import os
+from app.config import settings
 
 from app.models import ImportJob, ImportAuditLog, Dataset, ConnectionProfile
 from app.services.data_import.mapping_engine import MappingEngine
 from app.services.data_import.validation_engine import ValidationEngine
 from app.services.data_import.execution_engine import ExecutionEngine
+from app.services.file_service import FileIngestionService
 from app.core.crypto import decrypt_value
 
 logger = structlog.get_logger()
@@ -37,17 +40,30 @@ class ImportService:
             raise ValueError(f"Dataset {dataset_id} not found")
         
         # Load dataset data
-        # TODO: Implement based on your dataset storage
-        # For now, return mock data
-        return {
-            'dataset_id': dataset.id,
-            'name': dataset.name,
-            'row_count': dataset.row_count,
-            'columns': [
-                {'name': col.name, 'type': col.data_type}
-                for col in dataset.columns
-            ]
-        }
+        try:
+            if dataset.file_type == 'csv':
+                df = pd.read_csv(dataset.source_path, nrows=limit)
+            elif dataset.file_type in ['xlsx', 'xls']:
+                df = pd.read_excel(dataset.source_path, nrows=limit)
+            else:
+                raise ValueError(f"Unsupported file type: {dataset.file_type}")
+                
+            # Replace NaN with None for JSON serialization
+            df = df.where(pd.notnull(df), None)
+            
+            return {
+                'dataset_id': dataset.id,
+                'name': dataset.name,
+                'row_count': dataset.row_count,
+                'columns': [
+                    {'name': col.name, 'type': col.data_type}
+                    for col in dataset.columns
+                ],
+                'rows': df.to_dict(orient='records')
+            }
+        except Exception as e:
+            self.logger.error("preview_failed", error=str(e))
+            raise ValueError(f"Failed to read dataset: {str(e)}")
     
     def get_table_info(
         self,
@@ -129,13 +145,64 @@ class ImportService:
             table_info['columns']
         )
         
-        # TODO: Load and validate actual data
-        # For now, return mapping validation
         return {
             'mapping_valid': mapping_validation['valid'],
             'mapping_errors': mapping_validation['errors'],
             'mapping_warnings': mapping_validation['warnings']
         }
+        
+    def preview_import(
+        self,
+        dataset_id: int,
+        mappings: List[Dict[str, Any]],
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Preview import with mappings applied"""
+        dataset = self.db.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if not dataset:
+            raise ValueError(f"Dataset {dataset_id} not found")
+            
+        try:
+            # Resolve file path for Docker environment
+            # dataset.source_path might be a host path (e.g. D:/...) so we take basename
+            # and prepend the container's upload dir
+            filename = os.path.basename(dataset.source_path)
+            file_path = os.path.join(settings.UPLOAD_DIR, filename)
+            
+            self.logger.info(f"Reading file for preview: {file_path}")
+            
+            if not os.path.exists(file_path):
+                # Fallback to original path if not found (local dev case)
+                if os.path.exists(dataset.source_path):
+                    file_path = dataset.source_path
+                else:
+                    raise FileNotFoundError(f"File not found at {file_path} or {dataset.source_path}")
+
+            # Get data from FileIngestionService (handles path & DuckDB)
+            ingestion_service = FileIngestionService(self.db)
+            df = ingestion_service.get_dataset_preview(dataset, limit)
+            
+            # Apply mapping
+            mapped_df = self.mapping_engine.apply_mapping(
+                df,
+                mappings
+            )
+            
+            # Replace NaN with None
+            mapped_df = mapped_df.where(pd.notnull(mapped_df), None)
+            
+            return mapped_df.to_dict(orient='records')
+            
+        except Exception as e:
+            # Debug logging
+            try:
+                with open("/app/error.log", "w") as f:
+                    import traceback
+                    f.write(f"Error: {str(e)}\nTraceback:\n{traceback.format_exc()}")
+            except:
+                pass
+            self.logger.error("preview_failed", error=str(e))
+            raise ValueError(f"Failed to generate preview: {str(e)}")
     
     def execute_import(
         self,
@@ -160,6 +227,11 @@ class ImportService:
                 'mode': job.import_mode
             })
             
+            # Get dataset
+            dataset = self.db.query(Dataset).filter(Dataset.id == job.dataset_id).first()
+            if not dataset:
+                raise ValueError(f"Dataset {job.dataset_id} not found")
+            
             # Get connection
             connection = self.db.query(ConnectionProfile).filter(
                 ConnectionProfile.id == job.target_connection_id
@@ -171,9 +243,11 @@ class ImportService:
                 f"@{connection.host}:{connection.port}/{connection.database}"
             )
             
-            # TODO: Load dataset data into dataframe
-            # For now, create empty dataframe
-            df = pd.DataFrame()
+            # Load dataset data
+            # Load dataset data via FileIngestionService
+            self.logger.info("loading_dataset", dataset_id=dataset.id)
+            ingestion_service = FileIngestionService(self.db)
+            df = ingestion_service.get_dataset_dataframe(dataset)
             
             # Apply mapping
             mapped_df = self.mapping_engine.apply_mapping(

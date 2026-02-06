@@ -26,14 +26,17 @@ export const DataImport: React.FC = () => {
     const [selectedSchema, setSelectedSchema] = useState<string>('public');
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [columnMappings, setColumnMappings] = useState<{ [key: string]: string }>({});
+    const [sourceColumns, setSourceColumns] = useState<any[]>([]);
+    const [targetColumns, setTargetColumns] = useState<any[]>([]);
+    const [importMode, setImportMode] = useState<string>('insert');
+    const [batchSize, setBatchSize] = useState<number>(1000);
 
     const steps = [
         { number: 1, title: 'Select Dataset', icon: '📊' },
         { number: 2, title: 'Select Target', icon: '🎯' },
         { number: 3, title: 'Map Columns', icon: '🔗' },
-        { number: 4, title: 'Preview & Validate', icon: '👁️' },
-        { number: 5, title: 'Configure Import', icon: '⚙️' },
-        { number: 6, title: 'Execute', icon: '▶️' },
+        { number: 4, title: 'Configure Import', icon: '⚙️' },
+        { number: 5, title: 'Execute', icon: '▶️' },
     ];
 
     const handleDatasetSelect = (dataset: Dataset) => {
@@ -98,28 +101,32 @@ export const DataImport: React.FC = () => {
                         schema={selectedSchema}
                         tableName={selectedTable}
                         onMappingsChange={setColumnMappings}
+                        onSourceColumnsLoaded={setSourceColumns}
+                        onTargetColumnsLoaded={setTargetColumns}
                     />
                 )}
                 {currentStep === 4 && (
-                    <PreviewValidateStep
+                    <ConfigureImportStep
                         onNext={() => setCurrentStep(5)}
                         onBack={() => setCurrentStep(3)}
+                        importMode={importMode}
+                        onImportModeChange={setImportMode}
+                        batchSize={batchSize}
+                        onBatchSizeChange={setBatchSize}
                     />
                 )}
                 {currentStep === 5 && (
-                    <ConfigureImportStep
-                        onNext={() => setCurrentStep(6)}
-                        onBack={() => setCurrentStep(4)}
-                    />
-                )}
-                {currentStep === 6 && (
                     <ExecuteStep
-                        onBack={() => setCurrentStep(5)}
+                        onBack={() => setCurrentStep(4)}
                         dataset={selectedDataset}
                         connectionId={selectedConnection || 0}
                         schema={selectedSchema}
                         tableName={selectedTable}
                         mappings={columnMappings}
+                        sourceColumns={sourceColumns}
+                        targetColumns={targetColumns}
+                        importMode={importMode}
+                        batchSize={batchSize}
                     />
                 )}
             </div>
@@ -409,8 +416,10 @@ const MapColumnsStep: React.FC<{
     connectionId: number;
     schema: string;
     tableName: string;
-    onMappingsChange: (mappings: ColumnMapping[]) => void;
-}> = ({ onNext, onBack, datasetId, connectionId, schema, tableName, onMappingsChange }) => {
+    onMappingsChange: (mappings: { [key: string]: string }) => void;
+    onSourceColumnsLoaded: (columns: any[]) => void;
+    onTargetColumnsLoaded: (columns: any[]) => void;
+}> = ({ onNext, onBack, datasetId, connectionId, schema, tableName, onMappingsChange, onSourceColumnsLoaded, onTargetColumnsLoaded }) => {
     const [sourceColumns, setSourceColumns] = useState<any[]>([]);
     const [targetColumns, setTargetColumns] = useState<any[]>([]);
     const [mappings, setMappings] = useState<{ [key: string]: string }>({});
@@ -433,12 +442,17 @@ const MapColumnsStep: React.FC<{
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
 
-                setSourceColumns(datasetResponse.data.columns || []);
-                setTargetColumns(tableResponse.data.columns || []);
+                const srcCols = datasetResponse.data.columns || [];
+                setSourceColumns(srcCols);
+                onSourceColumnsLoaded(srcCols);
+
+                const tgtCols = tableResponse.data.columns || [];
+                setTargetColumns(tgtCols);
+                onTargetColumnsLoaded(tgtCols);
 
                 // Auto-map columns with matching names
                 const autoMappings: { [key: string]: string } = {};
-                datasetResponse.data.columns.forEach((srcCol: any) => {
+                srcCols.forEach((srcCol: any) => {
                     const matchingTarget = tableResponse.data.columns.find(
                         (tgtCol: any) => tgtCol.name.toLowerCase() === srcCol.name.toLowerCase()
                     );
@@ -447,6 +461,7 @@ const MapColumnsStep: React.FC<{
                     }
                 });
                 setMappings(autoMappings);
+                onMappingsChange(autoMappings); // Update parent state
                 setLoading(false);
             } catch (err) {
                 console.error('Failed to load columns:', err);
@@ -460,7 +475,9 @@ const MapColumnsStep: React.FC<{
     }, [datasetId, connectionId, schema, tableName]);
 
     const handleMappingChange = (sourceCol: string, targetCol: string) => {
-        setMappings(prev => ({ ...prev, [sourceCol]: targetCol }));
+        const newMappings = { ...mappings, [sourceCol]: targetCol };
+        setMappings(newMappings);
+        onMappingsChange(newMappings);
     };
 
     const handleAutoMap = () => {
@@ -474,15 +491,15 @@ const MapColumnsStep: React.FC<{
             }
         });
         setMappings(autoMappings);
+        onMappingsChange(autoMappings);
     };
 
     if (loading) {
         return (
             <div className="step-content">
-                <h2>Map Columns</h2>
                 <div className="loading-state">
                     <div className="spinner"></div>
-                    <p>Loading columns...</p>
+                    <p>Loading schema information...</p>
                 </div>
             </div>
         );
@@ -509,9 +526,9 @@ const MapColumnsStep: React.FC<{
                     </thead>
                     <tbody>
                         {sourceColumns.map((srcCol) => {
-                            const targetCol = mappings[srcCol.name] ?
-                                targetColumns.find(t => t.name === mappings[srcCol.name]) : null;
-                            const compatible = targetCol ? true : false; // Simplified compatibility check
+                            const targetColName = mappings[srcCol.name];
+                            const targetCol = targetColumns.find(tc => tc.name === targetColName);
+                            const isMapped = !!targetColName;
 
                             return (
                                 <tr key={srcCol.name}>
@@ -525,9 +542,9 @@ const MapColumnsStep: React.FC<{
                                             onChange={(e) => handleMappingChange(srcCol.name, e.target.value)}
                                         >
                                             <option value="">-- Skip --</option>
-                                            {targetColumns.map((tgtCol) => (
-                                                <option key={tgtCol.name} value={tgtCol.name}>
-                                                    {tgtCol.name}
+                                            {targetColumns.map(tc => (
+                                                <option key={tc.name} value={tc.name}>
+                                                    {tc.name} {tc.primary_key ? '(PK)' : ''}
                                                 </option>
                                             ))}
                                         </select>
@@ -536,8 +553,10 @@ const MapColumnsStep: React.FC<{
                                         {targetCol && <span className="type-badge">{targetCol.type}</span>}
                                     </td>
                                     <td>
-                                        {mappings[srcCol.name] && (
+                                        {isMapped ? (
                                             <span className="status-ok">✓ Mapped</span>
+                                        ) : (
+                                            <span className="status-skip">○ Skipped</span>
                                         )}
                                     </td>
                                 </tr>
@@ -552,83 +571,70 @@ const MapColumnsStep: React.FC<{
                     ← Back
                 </button>
                 <button className="btn-primary" onClick={onNext}>
-                    Next →
+                    Next: Configure →
                 </button>
             </div>
         </div>
     );
 };
 
-// Step 4: Preview & Validate
-const PreviewValidateStep: React.FC<{ onNext: () => void; onBack: () => void }> = ({
+// Step 4: Configure Import
+const ConfigureImportStep: React.FC<{
+    onNext: () => void;
+    onBack: () => void;
+    importMode: string;
+    onImportModeChange: (mode: string) => void;
+    batchSize: number;
+    onBatchSizeChange: (size: number) => void;
+}> = ({
     onNext,
     onBack,
+    importMode,
+    onImportModeChange,
+    batchSize,
+    onBatchSizeChange,
 }) => {
-    return (
-        <div className="step-content">
-            <h2>Preview & Validate</h2>
-            <p>Review data preview and validation results.</p>
+        return (
+            <div className="step-content">
+                <h2>Configure Import Options</h2>
+                <p>Set import behavior and options.</p>
 
-            <div className="validation-summary">
-                <div className="validation-item success">
-                    <span className="icon">✓</span>
-                    <span>All column mappings valid</span>
+                <div className="form-group">
+                    <label>Import Mode</label>
+                    <select
+                        className="form-control"
+                        value={importMode}
+                        onChange={(e) => onImportModeChange(e.target.value)}
+                    >
+                        <option value="insert">INSERT - Add new rows only</option>
+                        <option value="upsert">UPSERT - Insert or update existing rows</option>
+                        <option value="truncate_insert">TRUNCATE & INSERT - Clear table and insert</option>
+                    </select>
                 </div>
-                <div className="validation-item success">
-                    <span className="icon">✓</span>
-                    <span>No type mismatches detected</span>
+
+                <div className="form-group">
+                    <label>Batch Size</label>
+                    <input
+                        type="number"
+                        className="form-control"
+                        value={batchSize}
+                        onChange={(e) => onBatchSizeChange(Number(e.target.value))}
+                    />
+                </div>
+
+                <div className="step-actions">
+                    <button className="btn-secondary" onClick={onBack}>
+                        ← Back
+                    </button>
+                    <button className="btn-primary" onClick={onNext}>
+                        Next →
+                    </button>
                 </div>
             </div>
+        );
+    };
 
-            <div className="step-actions">
-                <button className="btn-secondary" onClick={onBack}>
-                    ← Back
-                </button>
-                <button className="btn-primary" onClick={onNext}>
-                    Next →
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// Step 5: Configure Import
-const ConfigureImportStep: React.FC<{ onNext: () => void; onBack: () => void }> = ({
-    onNext,
-    onBack,
-}) => {
-    return (
-        <div className="step-content">
-            <h2>Configure Import Options</h2>
-            <p>Set import behavior and options.</p>
-
-            <div className="form-group">
-                <label>Import Mode</label>
-                <select className="form-control">
-                    <option>INSERT - Add new rows only</option>
-                    <option>UPSERT - Insert or update existing rows</option>
-                    <option>TRUNCATE & INSERT - Clear table and insert</option>
-                </select>
-            </div>
-
-            <div className="form-group">
-                <label>Batch Size</label>
-                <input type="number" className="form-control" defaultValue={1000} />
-            </div>
-
-            <div className="step-actions">
-                <button className="btn-secondary" onClick={onBack}>
-                    ← Back
-                </button>
-                <button className="btn-primary" onClick={onNext}>
-                    Next →
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// Step 6: Execute
+// Step 5: Execute
 const ExecuteStep: React.FC<{
     onBack: () => void;
     dataset: Dataset | null;
@@ -636,116 +642,183 @@ const ExecuteStep: React.FC<{
     schema: string;
     tableName: string;
     mappings: { [key: string]: string };
-}> = ({ onBack, dataset, connectionId, schema, tableName, mappings }) => {
-    const [executing, setExecuting] = useState(false);
-    const [connectionName, setConnectionName] = useState<string>('');
+    sourceColumns: any[];
+    targetColumns: any[];
+    importMode: string;
+    batchSize: number;
+}> = ({
+    onBack,
+    dataset,
+    connectionId,
+    schema,
+    tableName,
+    mappings,
+    sourceColumns,
+    targetColumns,
+    importMode,
+    batchSize,
+}) => {
+        const [executing, setExecuting] = useState(false);
+        const [connectionName, setConnectionName] = useState<string>('');
+        const [success, setSuccess] = useState(false);
+        const [error, setError] = useState<string | null>(null);
+        const [importStats, setImportStats] = useState<any>(null);
 
-    useEffect(() => {
-        const fetchConnectionName = async () => {
+        useEffect(() => {
+            const fetchConnectionName = async () => {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await axios.get('http://localhost:8000/api/import/connections', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const conn = response.data.connections.find((c: any) => c.id === connectionId);
+                    if (conn) {
+                        setConnectionName(conn.name);
+                    }
+                } catch (err) {
+                    console.error('Failed to load connection name:', err);
+                }
+            };
+
+            if (connectionId) {
+                fetchConnectionName();
+            }
+        }, [connectionId]);
+
+        const handleExecute = async () => {
+            setExecuting(true);
+            setError(null);
+
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await axios.get('http://localhost:8000/api/import/connections', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const conn = response.data.connections.find((c: any) => c.id === connectionId);
-                if (conn) {
-                    setConnectionName(conn.name);
+                // Convert mappings to API format using targetColumns for correct type info
+                const apiMappings = Object.entries(mappings).map(([source, target]) => {
+                    const sourceCol = sourceColumns.find(c => c.name === source);
+                    const targetCol = targetColumns.find(c => c.name === target);
+                    return {
+                        source_column: source,
+                        target_column: target,
+                        source_type: sourceCol?.type || 'string',
+                        target_type: targetCol?.type || 'string',
+                        compatible: true
+                    };
+                }).filter(m => m.target_column);
+
+                const payload = {
+                    dataset_id: dataset?.id,
+                    connection_id: connectionId,
+                    target_table: tableName,
+                    target_schema: schema,
+                    import_mode: importMode,
+                    mappings: apiMappings,
+                    import_config: {
+                        batch_size: batchSize,
+                        stop_on_error: false
+                    }
+                };
+
+                const response = await axios.post(
+                    'http://localhost:8000/api/import/jobs',
+                    payload,
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+
+                if (response.data.status === 'completed' && response.data.result.success) {
+                    setSuccess(true);
+                    setImportStats(response.data.result);
+                } else {
+                    setError(response.data.error || 'Import failed');
                 }
-            } catch (err) {
-                console.error('Failed to load connection name:', err);
+            } catch (err: any) {
+                console.error('Import execution failed:', err);
+                const errorMsg = err.response?.data?.detail
+                    ? (typeof err.response.data.detail === 'object' ? JSON.stringify(err.response.data.detail) : err.response.data.detail)
+                    : 'Failed to execute import';
+                setError(errorMsg);
+            } finally {
+                setExecuting(false);
             }
         };
 
-        if (connectionId) {
-            fetchConnectionName();
-        }
-    }, [connectionId]);
+        const mappedColumnsCount = Object.keys(mappings).filter(key => mappings[key]).length;
+        const totalSourceColumns = Object.keys(mappings).length;
 
-    const mappedColumnsCount = Object.keys(mappings).filter(key => mappings[key]).length;
-    const totalSourceColumns = Object.keys(mappings).length;
-
-    return (
-        <div className="step-content">
-            <h2>Execute Import</h2>
-            <p>Review and execute the import operation.</p>
-
-            <div className="import-summary">
-                <h3>Import Summary</h3>
-
-                <div className="summary-section">
-                    <h4>📊 Source Dataset</h4>
-                    <div className="summary-item">
-                        <strong>Dataset:</strong> {dataset?.name || 'N/A'}
-                    </div>
-                    <div className="summary-item">
-                        <strong>Rows:</strong> {dataset?.row_count?.toLocaleString() || 0}
-                    </div>
-                    <div className="summary-item">
-                        <strong>Columns:</strong> {dataset?.column_count || 0}
-                    </div>
-                    <div className="summary-item">
-                        <strong>File Type:</strong> {dataset?.file_type?.toUpperCase() || 'N/A'}
-                    </div>
-                </div>
-
-                <div className="summary-section">
-                    <h4>🎯 Target Database</h4>
-                    <div className="summary-item">
-                        <strong>Connection:</strong> {connectionName || `ID: ${connectionId}`}
-                    </div>
-                    <div className="summary-item">
-                        <strong>Schema:</strong> {schema}
-                    </div>
-                    <div className="summary-item">
-                        <strong>Table:</strong> {tableName}
-                    </div>
-                </div>
-
-                <div className="summary-section">
-                    <h4>🔗 Column Mappings</h4>
-                    <div className="summary-item">
-                        <strong>Mapped Columns:</strong> {mappedColumnsCount} of {totalSourceColumns}
-                    </div>
-                    <div className="summary-item">
-                        <strong>Skipped Columns:</strong> {totalSourceColumns - mappedColumnsCount}
-                    </div>
-                </div>
-
-                <div className="summary-section">
-                    <h4>⚙️ Import Configuration</h4>
-                    <div className="summary-item">
-                        <strong>Mode:</strong> INSERT (Add new rows)
-                    </div>
-                    <div className="summary-item">
-                        <strong>Batch Size:</strong> 1,000 rows
-                    </div>
-                    <div className="summary-item">
-                        <strong>Estimated Rows:</strong> {dataset?.row_count?.toLocaleString() || 0}
-                    </div>
-                </div>
-
-                {executing && (
-                    <div className="import-progress">
-                        <div className="progress-bar">
-                            <div className="progress-fill" style={{ width: '0%' }}></div>
+        if (success) {
+            return (
+                <div className="step-content">
+                    <div className="success-message">
+                        <h2>🎉 Import Successful!</h2>
+                        <p>Your data has been successfully imported.</p>
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <span className="stat-value">{importStats?.inserted_rows || 0}</span>
+                                <span className="stat-label">Inserted</span>
+                            </div>
+                            <div className="stat-card">
+                                <span className="stat-value">{importStats?.updated_rows || 0}</span>
+                                <span className="stat-label">Updated</span>
+                            </div>
+                            <div className="stat-card">
+                                <span className="stat-value">{importStats?.error_rows || 0}</span>
+                                <span className="stat-label">Errors</span>
+                            </div>
                         </div>
-                        <p>Importing data... Please wait.</p>
+                        <button className="btn-primary" onClick={() => window.location.reload()}>
+                            Import Another Dataset
+                        </button>
                     </div>
-                )}
-            </div>
+                </div>
+            );
+        }
 
-            <div className="step-actions">
-                <button className="btn-secondary" onClick={onBack} disabled={executing}>
-                    ← Back
-                </button>
-                <button
-                    className="btn-danger"
-                    onClick={() => setExecuting(true)}
-                    disabled={executing}
-                >
-                    {executing ? '⏳ Importing...' : '▶️ Execute Import'}
-                </button>
+        return (
+            <div className="step-content">
+                <h2>Execute Import</h2>
+                <p>Review and execute the import operation.</p>
+
+                {error && <div className="error-message">⚠️ {error}</div>}
+
+                <div className="import-summary">
+                    <h3>Import Summary</h3>
+                    <div className="summary-section">
+                        <h4>📊 Source Dataset</h4>
+                        <div className="summary-item"><strong>Dataset:</strong> {dataset?.name}</div>
+                        <div className="summary-item"><strong>Rows:</strong> {dataset?.row_count?.toLocaleString()}</div>
+                    </div>
+                    <div className="summary-section">
+                        <h4>🎯 Target</h4>
+                        <div className="summary-item"><strong>Connection:</strong> {connectionName}</div>
+                        <div className="summary-item"><strong>Table:</strong> {schema}.{tableName}</div>
+                    </div>
+                    <div className="summary-section">
+                        <h4>⚙️ Options</h4>
+                        <div className="summary-item"><strong>Mode:</strong> {importMode.toUpperCase()}</div>
+                        <div className="summary-item"><strong>Batch Size:</strong> {batchSize}</div>
+                    </div>
+                    <div className="summary-section">
+                        <h4>🔗 Mappings</h4>
+                        <div className="summary-item"><strong>Mapped:</strong> {mappedColumnsCount} column(s)</div>
+                        <div className="summary-item"><strong>Skipped:</strong> {totalSourceColumns - mappedColumnsCount} column(s)</div>
+                    </div>
+                    {executing && (
+                        <div className="import-progress">
+                            <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: '100%', animation: 'progress 2s infinite' }}></div>
+                            </div>
+                            <p>Importing data...</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="step-actions">
+                    <button className="btn-secondary" onClick={onBack} disabled={executing}>← Back</button>
+                    <div className="action-buttons">
+                        <button className="btn-secondary btn-danger-outline" onClick={onBack}>Discard</button>
+                        <button className="btn-danger" onClick={handleExecute} disabled={executing}>
+                            {executing ? '⏳ Importing...' : '▶️ Execute Import'}
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-    );
-};
+        );
+    };

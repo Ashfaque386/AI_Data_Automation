@@ -456,9 +456,21 @@ class FileIngestionService:
                 'sheet_name': dataset.sheet_name
             }
             
+            # Resolve file path for Docker environment
+            filename = os.path.basename(dataset.source_path)
+            file_path = os.path.join(settings.UPLOAD_DIR, filename)
+            
+            # Fallback to source_path if file not found in uploads (dev mode)
+            if not os.path.exists(file_path) and os.path.exists(dataset.source_path):
+                file_path = dataset.source_path
+                
+            if not os.path.exists(file_path):
+                 logger.error("file_not_found", path=file_path)
+                 return False
+
             df, _, _ = self.processor.process_file(
-                open(dataset.source_path, 'rb').read(),
-                os.path.basename(dataset.source_path),
+                open(file_path, 'rb').read(),
+                filename,
                 config
             )
             
@@ -478,3 +490,25 @@ class FileIngestionService:
             if self.load_dataset_to_duckdb(dataset):
                 return self.duckdb.query_df(f"SELECT * FROM {dataset.virtual_table_name}")
             raise FileIngestionError(f"Dataset {dataset.name} not available")
+
+    def get_dataset_preview(self, dataset: Dataset, limit: int = 10) -> pd.DataFrame:
+        """Get preview DataFrame for a dataset from DuckDB."""
+        # Verify table exists in memory first
+        try:
+            check_query = f"SELECT count(*) as cnt FROM information_schema.tables WHERE table_name = '{dataset.virtual_table_name}'"
+            res = self.duckdb.execute(check_query).fetchone()
+            
+            if not res or res[0] == 0:
+                # Try one last attempt to reload ONLY if file exists in correct location
+                # This respects the "remove dependency" request by not failing on path errors if table exists
+                # but still trying to recover if possible without crashing
+                if self.load_dataset_to_duckdb(dataset):
+                    return self.duckdb.query_df(f"SELECT * FROM {dataset.virtual_table_name} LIMIT {limit}")
+                
+                raise FileIngestionError(f"Dataset table '{dataset.virtual_table_name}' not found in memory. Please reload the dataset in Data Sources.")
+
+            return self.duckdb.query_df(f"SELECT * FROM {dataset.virtual_table_name} LIMIT {limit}")
+        except Exception as e:
+            if "not found" in str(e).lower():
+                 raise FileIngestionError(f"Dataset not loaded: {str(e)}")
+            raise e

@@ -304,9 +304,40 @@ async def validate_import(
             schema,
             [m.dict() for m in mappings]
         )
-        return validation
+        return {
+            'mapping_valid': mapping_validation['valid'],
+            'mapping_errors': mapping_validation['errors'],
+            'mapping_warnings': mapping_validation['warnings']
+        }
     except Exception as e:
         logger.error("validation_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PreviewImportRequest(BaseModel):
+    dataset_id: int
+    mappings: List[ColumnMappingItem]
+    limit: int = 10
+
+
+@router.post("/preview")
+async def preview_import(
+    request: PreviewImportRequest,
+    db: Session = Depends(get_app_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Preview import data with mappings"""
+    import_service = ImportService(db)
+    
+    try:
+        preview_data = import_service.preview_import(
+            request.dataset_id,
+            [m.dict() for m in request.mappings],
+            request.limit
+        )
+        return {"preview": preview_data}
+    except Exception as e:
+        logger.error("preview_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
