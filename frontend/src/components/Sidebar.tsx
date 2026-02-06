@@ -14,6 +14,7 @@ export const Sidebar: React.FC = () => {
         { path: '/datasets', label: 'Data Sources', icon: '📊' },
         { path: '/sql', label: 'SQL Workspace', icon: '⚡' },
         { path: '/import', label: 'Data Import', icon: '📥' },
+        { path: '/table-entry', label: 'Table Data Entry', icon: '➕' },
         { path: '/jobs', label: 'Jobs & Schedulers', icon: '⏰' },
         { path: '/audit', label: 'Audit Logs', icon: '📋' },
         { path: '/settings', label: 'Settings', icon: '⚙️' },

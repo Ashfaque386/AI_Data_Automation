@@ -1,0 +1,98 @@
+/* Datatype Cell Styles */
+.datatype-cell {
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+}
+
+.datatype-cell.has-error {
+    background: #ffebee;
+}
+
+.cell-input {
+    width: 100%;
+    height: 100%;
+    min-height: 40px;
+    padding: 0.5rem;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: transparent;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.cell-input:hover {
+    background: #f8f9fa;
+}
+
+.cell-input:focus {
+    outline: none;
+    background: white;
+    border-color: #667eea;
+    box-shadow: inset 0 0 0 1px #667eea;
+}
+
+.cell-input.has-error:focus {
+    border-color: #c62828;
+    box-shadow: inset 0 0 0 1px #c62828;
+}
+
+.number-input {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.boolean-input {
+    cursor: pointer;
+}
+
+.text-input-wrapper {
+    position: relative;
+    height: 100%;
+}
+
+.char-count {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: #999;
+    pointer-events: none;
+}
+
+.cell-error {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    cursor: help;
+    z-index: 5;
+}
+
+/* React Select Overrides */
+.fk-select-container {
+    width: 100%;
+}
+
+.fk-select__control {
+    min-height: 40px !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.fk-select__control:hover {
+    background: #f8f9fa !important;
+}
+
+.fk-select__control--is-focused {
+    background: white !important;
+    box-shadow: inset 0 0 0 1px #667eea !important;
+}
+
+.fk-select__indicator-separator {
+    display: none;
+}

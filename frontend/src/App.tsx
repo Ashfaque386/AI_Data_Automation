@@ -7,6 +7,7 @@ import { SQLPage } from './pages/SQLPage'
 import { DatasetsPage } from './pages/DatasetsPage'
 import { FilesPage } from './pages/FilesPage'
 import { DataImport } from './pages/DataImport'
+import { TableEntryPage } from './pages/TableEntryPage'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { useAuthStore } from './store'
@@ -107,6 +108,7 @@ const App: React.FC = () => {
                         <Route path="/upload" element={<ProtectedRoute><></></ProtectedRoute>} />
                         <Route path="/files" element={<ProtectedRoute><></></ProtectedRoute>} />
                         <Route path="/import" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/table-entry" element={<ProtectedRoute><></></ProtectedRoute>} />
 
                         <Route path="/jobs" element={<ProtectedRoute><div className="page-placeholder">Jobs (Coming Soon)</div></ProtectedRoute>} />
                         <Route path="/audit" element={<ProtectedRoute><div className="page-placeholder">Audit Logs (Coming Soon)</div></ProtectedRoute>} />
@@ -160,6 +162,16 @@ const App: React.FC = () => {
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'auto' }}>
                                         <DataImport />
+                                    </div>
+                                }
+                            />
+
+                            <PersistentWrapper
+                                path="/table-entry"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                        <TableEntryPage />
                                     </div>
                                 }
                             />

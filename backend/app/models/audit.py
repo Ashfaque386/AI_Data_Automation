@@ -67,3 +67,25 @@ class QueryHistory(Base):
     is_favorite = Column(Boolean, default=False)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TableEntryAudit(Base):
+    """Audit log for table entry operations."""
+    __tablename__ = "table_entry_audit"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    connection_id = Column(Integer, ForeignKey("connection_profiles.id"), nullable=False)
+    target_schema = Column(String(255), nullable=False)
+    target_table = Column(String(255), nullable=False)
+    rows_attempted = Column(Integer, nullable=False)
+    rows_inserted = Column(Integer, nullable=False, default=0)
+    rows_failed = Column(Integer, nullable=False, default=0)
+    insert_mode = Column(String(50), nullable=False)  # transaction, row-by-row
+    error_details = Column(JSON)  # List of error details for failed rows
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Relationships
+    user = relationship("User")
+    connection = relationship("ConnectionProfile")
+

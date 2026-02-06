@@ -815,7 +815,7 @@ const ExecuteStep: React.FC<{
                     <div className="action-buttons">
                         <button className="btn-secondary btn-danger-outline" onClick={onBack}>Discard</button>
                         <button className="btn-danger" onClick={handleExecute} disabled={executing}>
-                            {executing ? '⏳ Importing...' : '▶️ Execute Import'}
+                            {executing ? '⏳ Importing...' : '► Execute Import'}
                         </button>
                     </div>
                 </div>
