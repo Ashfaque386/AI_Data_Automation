@@ -8,6 +8,7 @@ from app.models.job import ScheduledJob, JobExecution, JobType, JobStatus
 from app.models.ai_config import AIConfig
 from app.models.dataset_change import DatasetChange
 from app.models.dataset_lock import DatasetLock
+from app.models.connection import ConnectionProfile
 
 __all__ = [
     "User", "Role", "Permission", "RefreshToken",
@@ -15,5 +16,6 @@ __all__ = [
     "AuditLog", "QueryHistory",
     "ScheduledJob", "JobExecution", "JobType", "JobStatus",
     "AIConfig",
-    "DatasetChange", "DatasetLock"
+    "DatasetChange", "DatasetLock",
+    "ConnectionProfile"
 ]

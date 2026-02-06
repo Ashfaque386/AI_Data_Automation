@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     
-    # Database
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/dataops"
+    # Application Internal Database (ONLY from env)
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/AI_Data_Management"
     
     # Security
     SECRET_KEY: str = "your-super-secret-key-change-in-production"
@@ -46,44 +46,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
-
-    def get_db_url(self) -> str:
-        """Get database URL, checking persistent config first."""
-        # Use absolute path relative to app root to avoid CWD issues
-        # config.py is in app/config.py, so app root is ../
-        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config_path = os.path.join(app_root, "data", "db_config.json")
-        
-        print(f"DEBUG: Checking config at {config_path}")
-        parent = os.path.dirname(config_path)
-        if os.path.exists(parent):
-            print(f"DEBUG: Parent {parent} exists. Contents: {os.listdir(parent)}")
-        else:
-             print(f"DEBUG: Parent {parent} does not exist!")
-
-        if os.path.exists(config_path):
-            import json
-            try:
-                with open(config_path, "r") as f:
-                    data = json.load(f)
-                    print(f"DEBUG: JSON keys: {list(data.keys())}")
-                    if "database_url" in data:
-                        print(f"DEBUG: Found config: {data['database_url']}")
-                        return data["database_url"]
-            except Exception as e:
-                print(f"Error loading db_config: {e}")
-                pass
-        
-        print("DEBUG: Using default DATABASE_URL")
-        return self.DATABASE_URL
-    
-    def save_db_config(self, database_url: str):
-        """Save database configuration."""
-        config_path = "./data/db_config.json"
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        import json
-        with open(config_path, "w") as f:
-            json.dump({"database_url": database_url}, f)
 
 
 @lru_cache()

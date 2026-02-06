@@ -4,6 +4,7 @@ uvicorn[standard]==0.27.0
 sqlalchemy==2.0.25
 alembic==1.13.1
 psycopg2-binary==2.9.9
+pymysql==1.1.0
 python-jose[cryptography]==3.3.0
 bcrypt==3.2.2
 passlib[bcrypt]==1.7.4
@@ -12,6 +13,7 @@ pydantic==2.5.3
 pydantic-settings==2.1.0
 email-validator>=2.0.0
 dnspython>=2.0.0
+cryptography>=41.0.0
 duckdb==0.9.2
 pandas==2.1.4
 polars==0.20.3

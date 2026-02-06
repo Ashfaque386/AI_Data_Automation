@@ -10,9 +10,9 @@ import structlog
 import time
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, app_engine
 from app.core.rbac import initialize_rbac
-from app.database import get_db_context
+from app.database import get_app_db_context
 
 # Configure structured logging
 structlog.configure(
@@ -36,10 +36,10 @@ async def lifespan(app: FastAPI):
     
     # Create database tables
     try:
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=app_engine)
         
         # Initialize RBAC (roles and permissions)
-        with get_db_context() as db:
+        with get_app_db_context() as db:
             initialize_rbac(db)
         logger.info("database_initialized")
     except Exception as e:
@@ -132,7 +132,7 @@ async def root():
 
 
 # Import and include routers
-from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations
+from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations, connections
 
 # Setup router is always available
 app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
@@ -140,6 +140,7 @@ app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
 # Protected routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(connections.router, prefix="/api/connections", tags=["Connections"])
 app.include_router(datasets.router, prefix="/api/datasets", tags=["Datasets"])
 app.include_router(edit_operations.router, prefix="/api/datasets", tags=["Edit Operations"])
 app.include_router(sql.router, prefix="/api/sql", tags=["SQL"])

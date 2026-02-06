@@ -6,16 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: dataops_backend
+    env_file:
+      - .env
     environment:
-      # Connect to PostgreSQL on host machine
-      DATABASE_URL: postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/dataops
-      # Connect to Ollama on host machine
-      OLLAMA_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: llama2
-      AI_ENABLED: "true"
-      SECRET_KEY: dev-secret-key-change-in-production
+      # Override specific settings if needed
       DEBUG: "true"
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
     ports:
       - "8000:8000"
     volumes:
@@ -25,7 +20,13 @@ services:
       - ./backend/alembic:/app/alembic
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+
 
   frontend:
     build:

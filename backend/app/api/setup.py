@@ -1,14 +1,14 @@
 """
 Setup API for initial configuration
 """
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, status, Body
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 import structlog
 from app.config import settings
-from app.database import reconfigure_engine, Base
+from app.database import Base, app_engine, get_app_db_context, AppSessionLocal
 from app.core.rbac import initialize_rbac
-from app.database import get_db_context
+from app.core.crypto import encrypt_value
 
 router = APIRouter()
 logger = structlog.get_logger()
@@ -52,7 +52,12 @@ async def test_connection(request: ConnectionTestRequest):
 
 @router.post("/configure")
 async def configure_database(request: ConfigureRequest):
-    """Save configuration and initialize database."""
+    """
+    Configure User Operational Database connection.
+    
+    This endpoint creates a new ConnectionProfile in the App DB
+    and sets it as the active connection for data operations.
+    """
     url = f"postgresql://{request.user}:{request.password}@{request.host}:{request.port}/{request.database}"
     
     try:
@@ -61,19 +66,53 @@ async def configure_database(request: ConfigureRequest):
         with temp_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         
-        # 2. Save config
-        settings.save_db_config(url)
+        # 2. Save as ConnectionProfile in App DB
+        from app.models import ConnectionProfile
         
-        # 3. Reconfigure global engine
-        reconfigure_engine()
-        
-        # 4. Initialize schema and RBAC
-        # Note: We need to import models here or in main to ensure they are registered
-        from app.database import engine
-        Base.metadata.create_all(bind=engine)
-        
-        with get_db_context() as db:
-            initialize_rbac(db)
+        db = AppSessionLocal()
+        try:
+            # Check if a connection with this name exists
+            existing = db.query(ConnectionProfile).filter(
+                ConnectionProfile.name == f"User DB - {request.database}"
+            ).first()
+            
+            if existing:
+                # Update existing connection
+                existing.host = request.host
+                existing.port = request.port
+                existing.database = request.database
+                existing.username = request.user
+                existing.encrypted_password = encrypt_value(request.password)
+                existing.is_active = True
+                
+                # Deactivate other connections
+                db.query(ConnectionProfile).filter(
+                    ConnectionProfile.id != existing.id
+                ).update({"is_active": False})
+                
+            else:
+                # Deactivate all existing connections
+                db.query(ConnectionProfile).update({"is_active": False})
+                
+                # Create new connection profile
+                new_conn = ConnectionProfile(
+                    name=f"User DB - {request.database}",
+                    description=f"User Operational Database: {request.database}",
+                    db_type="postgresql",
+                    host=request.host,
+                    port=request.port,
+                    database=request.database,
+                    username=request.user,
+                    encrypted_password=encrypt_value(request.password),
+                    is_active=True,
+                    is_read_only=False
+                )
+                db.add(new_conn)
+            
+            db.commit()
+            
+        finally:
+            db.close()
             
         return {"success": True, "message": "Database configured successfully"}
         
@@ -84,10 +123,9 @@ async def configure_database(request: ConfigureRequest):
 
 @router.get("/status")
 async def get_status():
-    """Check if database is configured."""
+    """Check if App Internal Database is configured."""
     try:
-        from app.database import engine
-        with engine.connect() as conn:
+        with app_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"configured": True}
     except Exception:
@@ -99,9 +137,8 @@ async def create_admin_user():
     """Manually create default admin user if missing."""
     try:
         from app.models import User, Role
-        from app.database import SessionLocal
         
-        db = SessionLocal()
+        db = AppSessionLocal()
         try:
             # Check if admin user exists
             admin = db.query(User).filter(User.email == "admin@example.com").first()
@@ -133,3 +170,4 @@ async def create_admin_user():
     except Exception as e:
         logger.error("admin_creation_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
