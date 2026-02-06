@@ -11,13 +11,7 @@ interface Dataset {
     status: string;
 }
 
-interface ColumnMapping {
-    sourceColumn: string;
-    sourceType: string;
-    targetColumn: string;
-    targetType: string;
-    compatible: boolean;
-}
+
 
 export const DataImport: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(1);

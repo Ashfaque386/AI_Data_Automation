@@ -26,6 +26,18 @@ A production-grade, local-first data operations console combining the ease of Ex
 - **Persistent Workspace**: Switch between SQL, Import, and Data tabs without losing your state.
 - **Bulk Operations**: Sort, filter, rename, and delete columns with ease.
 
+### 📝 Table Data Entry
+- **Excel-Like Grid**: High-performance grid with sticky headers and horizontal scrolling.
+- **Direct Database Entry**: Insert rows directly into your database tables.
+- **Smart Validation**: Type checking and foreign key validation before insertion.
+- **Insert Modes**: Support for row-by-row or transactional batch inserts.
+
+### 📥 Data Import Wizard
+- **Universal Import**: Import data from CSV, Excel, or JSON files.
+- **Smart Mapping**: Auto-map columns based on name similarity.
+- **Flexible Modes**: Support for Insert, Upsert, and Truncate & Insert operations.
+- **Visual Progress**: Real-time progress monitoring with detailed summary stats.
+
 ### 🤖 AI-Powered Intelligence
 - **Local AI Integration**: Connects to **Ollama** running on your host machine.
 - **Privacy First**: Your data never leaves your environment.
