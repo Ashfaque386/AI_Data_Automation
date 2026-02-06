@@ -16,6 +16,9 @@ from app.models import Dataset, User, DatasetStatus
 from app.core.rbac import get_current_user, DatasetAccessChecker
 from app.core.audit import AuditLogger
 from app.services import FileIngestionService
+import structlog
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -185,7 +188,7 @@ async def delete_dataset(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a dataset."""
+    """Delete a dataset and its associated physical file."""
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -197,8 +200,62 @@ async def delete_dataset(
             detail="No delete access to this dataset"
         )
     
-    db.delete(dataset)
-    db.commit()
+    # Clean up DuckDB virtual table if it exists
+    if dataset.virtual_table_name:
+        try:
+            from app.database import DuckDBManager
+            duckdb_manager = DuckDBManager()
+            # Drop the table from DuckDB memory
+            duckdb_manager.execute(f"DROP TABLE IF EXISTS {dataset.virtual_table_name}")
+            logger.info(f"Dropped DuckDB table: {dataset.virtual_table_name}")
+        except Exception as e:
+            logger.warning(f"Failed to drop DuckDB table {dataset.virtual_table_name}: {str(e)}")
+            # Continue with deletion even if DuckDB cleanup fails
+    
+    # Delete related import jobs first (foreign key constraint)
+    from app.models import ImportJob
+    related_jobs = db.query(ImportJob).filter(ImportJob.dataset_id == dataset_id).all()
+    for job in related_jobs:
+        db.delete(job)
+    if related_jobs:
+        db.commit()
+        logger.info(f"Deleted {len(related_jobs)} related import jobs")
+    
+    # Delete physical file if it exists
+    if dataset.source_path:
+        import os
+        from app.config import settings
+        
+        # Construct the file path (handle both absolute and relative paths)
+        file_path = dataset.source_path
+        
+        # If the path is not absolute, assume it's in UPLOAD_DIR
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(settings.UPLOAD_DIR, os.path.basename(file_path))
+        
+        # Attempt to delete the file
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logger.info(f"Deleted physical file: {file_path}")
+            else:
+                logger.warning(f"File not found for deletion: {file_path}")
+        except Exception as e:
+            logger.error(f"Failed to delete file {file_path}: {str(e)}")
+            # Continue with database deletion even if file deletion fails
+    
+    # Delete database record (cascade will handle related records)
+    try:
+        db.delete(dataset)
+        db.commit()
+        logger.info(f"Deleted dataset record: {dataset.id} - {dataset.name}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to delete dataset from database: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete dataset: {str(e)}"
+        )
     
     return {"message": "Dataset deleted successfully"}
 

@@ -23,7 +23,7 @@ A production-grade, local-first data operations console combining the ease of Ex
 ### ✏️ Advanced Data Editing
 - **Excel-Style Interface**: Double-click to edit cells inline.
 - **Computed Columns**: Create dynamic columns using Excel-like formulas.
-- **Undo/Redo**: Full history tracking for safe experimentation.
+- **Persistent Workspace**: Switch between SQL, Import, and Data tabs without losing your state.
 - **Bulk Operations**: Sort, filter, rename, and delete columns with ease.
 
 ### 🤖 AI-Powered Intelligence

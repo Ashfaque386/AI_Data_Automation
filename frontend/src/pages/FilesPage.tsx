@@ -31,7 +31,9 @@ export const FilesPage: React.FC = () => {
     const deleteMutation = useMutation({
         mutationFn: (id: number) => datasetsApi.delete(id),
         onSuccess: () => {
+            // Invalidate all dataset-related queries to sync across tabs
             queryClient.invalidateQueries({ queryKey: ['uploaded-files'] })
+            queryClient.invalidateQueries({ queryKey: ['datasets'] })
         }
     })
 
