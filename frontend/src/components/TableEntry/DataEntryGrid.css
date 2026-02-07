@@ -635,16 +635,28 @@
     color: #c9d1d9;
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
     border-color: #8b949e;
     background: #21262d;
+}
+
+.btn:disabled,
+.btn-outline:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn:not(:disabled),
+.btn-outline:not(:disabled) {
+    cursor: pointer;
 }
 
 .danger-text {
     color: #f85149;
 }
 
-.danger-text:hover {
+.danger-text:hover:not(:disabled) {
     background: rgba(248, 81, 73, 0.1);
     border-color: #f85149;
 }

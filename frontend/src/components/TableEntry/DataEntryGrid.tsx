@@ -152,7 +152,7 @@ export const DataEntryGrid: React.FC<DataEntryGridProps> = ({
         <div className="data-entry-grid">
             {/* Grid Controls */}
             <div className="grid-controls">
-                <button className="btn btn-outline" onClick={addRow}>
+                <button className="btn btn-outline" onClick={addRow} disabled={false}>
                     ➕ Add Row
                 </button>
                 <button className="btn btn-outline" onClick={handleValidate} disabled={validateMutation.isPending}>

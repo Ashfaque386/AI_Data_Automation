@@ -20,7 +20,9 @@ export const InsertControls: React.FC<InsertControlsProps> = ({
     isInserting,
     validationResult
 }) => {
-    const canInsert = validationResult?.is_valid === true
+    // Allow insert even without validation (backend will validate anyway)
+    // Only block if validation explicitly failed
+    const canInsert = validationResult ? validationResult.is_valid === true : true
 
     return (
         <div className="insert-controls">
