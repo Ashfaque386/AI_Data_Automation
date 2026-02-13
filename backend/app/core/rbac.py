@@ -198,6 +198,12 @@ DEFAULT_PERMISSIONS = [
     {"name": "import:execute", "resource": "import", "action": "execute", "description": "Execute data imports"},
     {"name": "import:view", "resource": "import", "action": "view", "description": "View import jobs and history"},
     {"name": "import:configure", "resource": "import", "action": "configure", "description": "Configure import mappings"},
+    # Job permissions
+    {"name": "jobs:view", "resource": "jobs", "action": "view", "description": "View jobs and execution history"},
+    {"name": "jobs:create", "resource": "jobs", "action": "create", "description": "Create new jobs"},
+    {"name": "jobs:execute", "resource": "jobs", "action": "execute", "description": "Execute jobs manually"},
+    {"name": "jobs:manage", "resource": "jobs", "action": "manage", "description": "Manage jobs (edit, delete, toggle)"},
+    {"name": "jobs:backup", "resource": "jobs", "action": "backup", "description": "Create and download database backups"},
     # Admin permissions
     {"name": "admin:users", "resource": "admin", "action": "users", "description": "Manage users"},
     {"name": "admin:roles", "resource": "admin", "action": "roles", "description": "Manage roles"},
@@ -213,6 +219,7 @@ DEFAULT_ROLES = [
         "permissions": ["dataset:read", "dataset:write", "dataset:delete", "dataset:share",
                        "sql:execute", "sql:write", "export:excel", "export:csv", "export:json",
                        "import:execute", "import:view", "import:configure",
+                       "jobs:view", "jobs:create", "jobs:execute", "jobs:manage", "jobs:backup",
                        "admin:users", "admin:roles", "admin:audit", "admin:jobs"]
     },
     {
@@ -220,20 +227,21 @@ DEFAULT_ROLES = [
         "description": "Data analyst with read and SQL access",
         "is_system": True,
         "permissions": ["dataset:read", "sql:execute", "export:excel", "export:csv", "export:json",
-                       "import:view"]
+                       "import:view", "jobs:view"]
     },
     {
         "name": "viewer",
         "description": "Read-only access",
         "is_system": True,
-        "permissions": ["dataset:read"]
+        "permissions": ["dataset:read", "jobs:view"]
     },
     {
         "name": "editor",
         "description": "Can read, write, and export data",
         "is_system": True,
         "permissions": ["dataset:read", "dataset:write", "sql:execute", "export:excel", "export:csv",
-                       "import:execute", "import:view", "import:configure"]
+                       "import:execute", "import:view", "import:configure",
+                       "jobs:view", "jobs:create", "jobs:execute"]
     }
 ]
 
@@ -250,18 +258,24 @@ def initialize_rbac(db: Session):
     db.commit()
     
     # Create roles with permissions
+    # Create or update roles with permissions
     for role_data in DEFAULT_ROLES:
-        existing = db.query(Role).filter(Role.name == role_data["name"]).first()
-        if not existing:
+        role = db.query(Role).filter(Role.name == role_data["name"]).first()
+        if not role:
             role = Role(
                 name=role_data["name"],
                 description=role_data["description"],
                 is_system=role_data["is_system"]
             )
-            for perm_name in role_data["permissions"]:
+            db.add(role)
+            db.flush()  # Get ID
+
+        # Update permissions
+        current_perms = {p.name for p in role.permissions}
+        for perm_name in role_data["permissions"]:
+            if perm_name not in current_perms:
                 perm = db.query(Permission).filter(Permission.name == perm_name).first()
                 if perm:
                     role.permissions.append(perm)
-            db.add(role)
-    
+        
     db.commit()

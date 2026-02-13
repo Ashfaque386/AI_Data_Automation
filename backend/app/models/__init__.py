@@ -4,7 +4,7 @@ Models Package
 from app.models.user import User, Role, Permission, RefreshToken
 from app.models.dataset import Dataset, DatasetColumn, DatasetVersion, DatasetPermission, DatasetStatus, ColumnType
 from app.models.audit import AuditLog, QueryHistory, TableEntryAudit
-from app.models.job import ScheduledJob, JobExecution, JobType, JobStatus
+from app.models.job import ScheduledJob, JobExecution, JobType, JobStatus, JobParameter, BackupConfiguration, BackupType
 from app.models.ai_config import AIConfig
 from app.models.dataset_change import DatasetChange
 from app.models.dataset_lock import DatasetLock
@@ -15,10 +15,11 @@ __all__ = [
     "User", "Role", "Permission", "RefreshToken",
     "Dataset", "DatasetColumn", "DatasetVersion", "DatasetPermission", "DatasetStatus", "ColumnType",
     "AuditLog", "QueryHistory", "TableEntryAudit",
-    "ScheduledJob", "JobExecution", "JobType", "JobStatus",
+    "ScheduledJob", "JobExecution", "JobType", "JobStatus", "JobParameter", "BackupConfiguration", "BackupType",
     "AIConfig",
     "DatasetChange", "DatasetLock",
     "ConnectionProfile",
     "ImportJob", "ImportMapping", "ImportAuditLog"
 ]
+
 

@@ -1,0 +1,206 @@
+.cron-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.cron-mode-selector {
+    display: flex;
+    gap: 12px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 12px;
+}
+
+.mode-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    color: #ccc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn.active {
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+}
+
+/* Preset Mode */
+.preset-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.preset-select {
+    padding: 10px;
+    background: #252525;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+    width: 100%;
+}
+
+.preset-select:focus {
+    border-color: #4a9eff;
+    outline: none;
+}
+
+/* Custom Mode */
+.custom-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cron-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.field-group label {
+    font-size: 12px;
+    color: #888;
+    font-weight: 500;
+}
+
+.field-group input[type="text"] {
+    padding: 8px;
+    background: #252525;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    text-align: center;
+}
+
+.field-group input[type="text"]:focus {
+    border-color: #4a9eff;
+    outline: none;
+}
+
+.field-group small {
+    font-size: 10px;
+    color: #666;
+    height: 24px;
+    /* Fixed height for alignment */
+}
+
+/* Days of Week Checkboxes */
+.days-of-week {
+    grid-column: 1 / -1;
+    /* Span full width */
+}
+
+.day-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.day-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #ccc;
+    user-select: none;
+}
+
+.day-checkbox input[type="checkbox"] {
+    accent-color: #4a9eff;
+}
+
+/* Output Display */
+.cron-expression-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+.cron-expression-display label {
+    color: #888;
+    font-size: 13px;
+}
+
+.cron-expression-display code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #4a9eff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Validation & Preview */
+.cron-error {
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    color: #fca5a5;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.next-runs-preview {
+    margin-top: 8px;
+}
+
+.next-runs-preview label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.next-runs-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.next-runs-preview li {
+    font-size: 13px;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.run-icon {
+    font-size: 10px;
+    color: #4a9eff;
+}

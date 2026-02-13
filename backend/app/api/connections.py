@@ -4,6 +4,7 @@ Connection Profile API Routes - User Operational Database Management
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel
 
 from app.database import get_app_db
@@ -59,7 +60,7 @@ class ConnectionProfileResponse(BaseModel):
     schema: Optional[str]
     is_active: bool
     is_read_only: bool
-    created_at: str
+    created_at: datetime
     
     class Config:
         from_attributes = True

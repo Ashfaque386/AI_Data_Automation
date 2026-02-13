@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Login } from './pages/Login'
 import { Home } from './pages/Home'
@@ -8,6 +8,7 @@ import { DatasetsPage } from './pages/DatasetsPage'
 import { FilesPage } from './pages/FilesPage'
 import { DataImport } from './pages/DataImport'
 import { TableEntryPage } from './pages/TableEntryPage'
+import { JobsPage } from './pages/JobsPage';
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { useAuthStore } from './store'
@@ -62,6 +63,31 @@ const App: React.FC = () => {
         }
     }, [isAuthenticated, setUser])
 
+    // Memoize persistent page components to prevent re-renders and preserve state
+    const [sqlPageState] = useState(() => (
+        <SQLPage />
+    ));
+
+    const [datasetsPageState] = useState(() => (
+        <DatasetsPage />
+    ));
+
+    const [filesPageState] = useState(() => (
+        <FilesPage />
+    ));
+
+    const [dataImportPageState] = useState(() => (
+        <DataImport />
+    ));
+
+    const [tableEntryPageState] = useState(() => (
+        <TableEntryPage />
+    ));
+
+    const [jobsPageState] = useState(() => (
+        <JobsPage />
+    ));
+
     return (
         <div className="app-layout">
             {isAuthenticated && <Sidebar />}
@@ -109,8 +135,8 @@ const App: React.FC = () => {
                         <Route path="/files" element={<ProtectedRoute><></></ProtectedRoute>} />
                         <Route path="/import" element={<ProtectedRoute><></></ProtectedRoute>} />
                         <Route path="/table-entry" element={<ProtectedRoute><></></ProtectedRoute>} />
+                        <Route path="/jobs" element={<ProtectedRoute><></></ProtectedRoute>} />
 
-                        <Route path="/jobs" element={<ProtectedRoute><div className="page-placeholder">Jobs (Coming Soon)</div></ProtectedRoute>} />
                         <Route path="/audit" element={<ProtectedRoute><div className="page-placeholder">Audit Logs (Coming Soon)</div></ProtectedRoute>} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
@@ -131,7 +157,7 @@ const App: React.FC = () => {
                                 activePath={location.pathname}
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'hidden' }}>
-                                        <SQLPage />
+                                        {sqlPageState}
                                     </div>
                                 }
                             />
@@ -141,7 +167,7 @@ const App: React.FC = () => {
                                 activePath={location.pathname}
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'auto' }}>
-                                        <DatasetsPage />
+                                        {datasetsPageState}
                                     </div>
                                 }
                             />
@@ -151,7 +177,7 @@ const App: React.FC = () => {
                                 activePath={location.pathname}
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'auto' }}>
-                                        <FilesPage />
+                                        {filesPageState}
                                     </div>
                                 }
                             />
@@ -161,7 +187,7 @@ const App: React.FC = () => {
                                 activePath={location.pathname}
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'auto' }}>
-                                        <DataImport />
+                                        {dataImportPageState}
                                     </div>
                                 }
                             />
@@ -171,7 +197,17 @@ const App: React.FC = () => {
                                 activePath={location.pathname}
                                 component={
                                     <div className="workspace-content" style={{ overflow: 'auto' }}>
-                                        <TableEntryPage />
+                                        {tableEntryPageState}
+                                    </div>
+                                }
+                            />
+
+                            <PersistentWrapper
+                                path="/jobs"
+                                activePath={location.pathname}
+                                component={
+                                    <div className="workspace-content" style={{ overflow: 'auto' }}>
+                                        {jobsPageState}
                                     </div>
                                 }
                             />
