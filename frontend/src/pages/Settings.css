@@ -223,3 +223,54 @@
 .fade-in {
     animation: slideDown 0.3s ease-out;
 }
+
+/* Tab Navigation */
+.settings-tabs {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: 0;
+}
+
+.settings-tabs .tab {
+    padding: 12px 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+    /* Overlap border */
+    font-size: 14px;
+}
+
+.settings-tabs .tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border-radius: 6px 6px 0 0;
+    /* rounded top */
+}
+
+.settings-tabs .tab.active {
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
+    background: transparent;
+}
+
+.tab-content {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+/* Hide nested headers/padding when embedding DatabaseConnectionsPage */
+.settings-container .database-connections-page {
+    padding: 0;
+}
+
+.settings-container .database-connections-page .page-header h1 {
+    display: none;
+}

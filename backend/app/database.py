@@ -80,13 +80,17 @@ class UserDatabaseManager:
     def __init__(self):
         self._active_connection = None
     
-    def get_active_connection_profile(self, app_db: Session):
+    def get_active_connection_profile(self, app_db: Session, connection_id: Optional[int] = None):
         """Get the active connection profile from App DB."""
         from app.models import ConnectionProfile
-        profile = app_db.query(ConnectionProfile).filter(
+        query = app_db.query(ConnectionProfile).filter(
             ConnectionProfile.is_active == True
-        ).first()
-        return profile
+        )
+        
+        if connection_id:
+            query = query.filter(ConnectionProfile.id == connection_id)
+            
+        return query.first()
     
     def create_engine(self, connection_string: str, read_only: bool = False):
         """Create a SQLAlchemy engine for User DB."""
@@ -106,7 +110,7 @@ class UserDatabaseManager:
         )
     
     @contextmanager
-    def get_connection(self, app_db: Session):
+    def get_connection(self, app_db: Session, connection_id: Optional[int] = None):
         """
         Get a connection to the User Operational Database.
         
@@ -115,7 +119,7 @@ class UserDatabaseManager:
         """
         from app.core.crypto import decrypt_value
         
-        profile = self.get_active_connection_profile(app_db)
+        profile = self.get_active_connection_profile(app_db, connection_id)
         
         if not profile:
             raise ValueError(
@@ -132,11 +136,13 @@ class UserDatabaseManager:
         # Create ephemeral engine
         engine = self.create_engine(connection_string, profile.is_read_only)
         
+        connection = None
         try:
             connection = engine.connect()
             yield connection
         finally:
-            connection.close()
+            if connection:
+                connection.close()
             engine.dispose()
 
 

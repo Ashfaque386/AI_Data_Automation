@@ -84,7 +84,7 @@ def execute_user_query(user_conn: Connection, query: str, limit: int = 1000) -> 
         )
 
 
-@router.post("/execute", response_model=SQLResult)
+@router.post("/execute")
 async def execute_sql(
     request: SQLRequest = Body(...),
     current_user: User = Depends(get_current_user),
@@ -92,51 +92,66 @@ async def execute_sql(
 ):
     """
     Execute a SQL query on the User Operational Database.
-    
-    SECURITY: This endpoint ONLY executes queries on the User DB.
-    App DB is used solely for audit logging and query history.
     """
-    # Check permission
-    if not current_user.has_permission("sql:execute"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="SQL execution permission required"
-        )
-    
-    # Get User DB connection
     try:
-        with user_db_manager.get_connection(app_db) as user_conn:
+        # Check permission
+        if not current_user.has_permission("sql:execute"):
+            return {
+                "success": False, 
+                "error_message": "SQL execution permission required",
+                "execution_time_ms": 0,
+                "query": request.query,
+                "query_type": "select"
+            }
+        
+        print(f"DEBUG: execute_sql request - query='{request.query}' connection_id={request.connection_id}")
+        
+        # Get User DB connection
+        with user_db_manager.get_connection(app_db, request.connection_id) as user_conn:
+            print(f"DEBUG: Obtained connection: {user_conn}")
             # Execute query on User DB
             result = execute_user_query(user_conn, request.query, request.limit)
             
             # Audit log to App DB
-            auditor = AuditLogger(app_db)
-            auditor.log_query(
-                user=current_user,
-                query=request.query,
-                duration_ms=result.execution_time_ms,
-                rows_affected=result.rows_affected or result.row_count,
-                success=result.success,
-                error=result.error_message
-            )
+            try:
+                auditor = AuditLogger(app_db)
+                auditor.log_query(
+                    user=current_user,
+                    query=request.query,
+                    duration_ms=result.execution_time_ms,
+                    rows_affected=result.rows_affected or result.row_count,
+                    success=result.success,
+                    error=result.error_message,
+                    connection_id=request.connection_id
+                )
+            except Exception as e:
+                print(f"AUDIT LOG FAILED: {str(e)}")
             
             # Record in query history (App DB)
             if result.success:
-                history_manager = QueryHistoryManager(app_db)
-                history_manager.record_query(
-                    user_id=current_user.id,
-                    query=request.query,
-                    duration_ms=result.execution_time_ms
-                )
+                try:
+                    history_manager = QueryHistoryManager(app_db)
+                    history_manager.record_query(
+                        user_id=current_user.id,
+                        query=request.query,
+                        duration_ms=result.execution_time_ms,
+                        connection_id=request.connection_id
+                    )
+                except Exception as e:
+                    print(f"HISTORY LOG FAILED: {str(e)}")
             
             return result
-    
-    except ValueError as e:
-        # No active connection configured
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(e)
-        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error_message": f"Critical Error: {str(e)}",
+            "execution_time_ms": 0,
+            "query": request.query if request else "",
+            "query_type": "select"
+        }
 
 
 @router.post("/explain", response_model=QueryExplainResult)
@@ -153,7 +168,7 @@ async def explain_query(
         )
     
     try:
-        with user_db_manager.get_connection(app_db) as user_conn:
+        with user_db_manager.get_connection(app_db, request.connection_id) as user_conn:
             explain_query = f"EXPLAIN {request.query}"
             result = user_conn.execute(text(explain_query))
             plan_text = "\n".join(str(row[0]) for row in result.fetchall())

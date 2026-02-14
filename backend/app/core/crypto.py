@@ -46,3 +46,9 @@ def decrypt_value(encrypted_value: str) -> Optional[str]:
         return decrypted.decode()
     except Exception:
         return None
+
+
+# Alias for backward compatibility
+def decrypt_password(encrypted_password: str) -> Optional[str]:
+    """Decrypt an encrypted password (alias for decrypt_value)."""
+    return decrypt_value(encrypted_password)

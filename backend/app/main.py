@@ -87,6 +87,7 @@ async def add_process_time_header(request: Request, call_next):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors."""
+    print(f"VALIDATION ERROR: {exc.errors()}")  # Force print to stdout
     logger.warning("validation_error", errors=exc.errors(), path=request.url.path)
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -100,6 +101,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle general exceptions."""
+    print(f"GENERAL EXCEPTION: {str(exc)}")  # Force print to stdout
     logger.error("unhandled_exception", error=str(exc), path=request.url.path)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,7 +134,7 @@ async def root():
 
 
 # Import and include routers
-from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations, connections, data_import, table_entry, jobs
+from app.api import auth, datasets, sql, export, users, ai, setup, ai_routes, edit_operations, connections, data_import, table_entry, jobs, audit, permissions, mongodb
 
 # Setup router is always available
 app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
@@ -140,7 +142,10 @@ app.include_router(setup.router, prefix="/api/setup", tags=["Setup"])
 # Protected routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(permissions.router, prefix="/api/permissions", tags=["Permissions"])
 app.include_router(connections.router, prefix="/api/connections", tags=["Connections"])
+
+app.include_router(mongodb.router, prefix="/api", tags=["MongoDB"])
 app.include_router(datasets.router, prefix="/api/datasets", tags=["Datasets"])
 app.include_router(edit_operations.router, prefix="/api/datasets", tags=["Edit Operations"])
 app.include_router(sql.router, prefix="/api/sql", tags=["SQL"])
@@ -150,6 +155,7 @@ app.include_router(ai_routes.router, prefix="/api/ai", tags=["AI Configuration"]
 app.include_router(data_import.router, prefix="/api/import", tags=["Data Import"])
 app.include_router(table_entry.router, prefix="/api/table-entry", tags=["Table Entry"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs & Schedulers"])
+app.include_router(audit.router, prefix="/api/audit", tags=["Audit Logs"])
 
 
 

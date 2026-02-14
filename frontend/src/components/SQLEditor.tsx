@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { sqlApi, aiApi } from '../services/api'
 import { AIModelSelector } from './AIModelSelector'
+import ConnectionSelector from './connections/ConnectionSelector'
 import { useAppStore } from '../store'
 import './SQLEditor.css'
 
@@ -11,16 +12,21 @@ export const SQLEditor: React.FC = () => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [nlPrompt, setNlPrompt] = useState('')
     const [showAiInput, setShowAiInput] = useState(false)
-    const [source, setSource] = useState<'postgres' | 'duckdb'>('postgres')
+    const [selectedConnectionId, setSelectedConnectionId] = useState<number | undefined>()
 
     const { selectedModel } = useAppStore()
 
     const executeQuery = async () => {
         if (!query.trim()) return
+        if (!selectedConnectionId) {
+            alert('Please select a database connection first')
+            return
+        }
 
         setIsExecuting(true)
         try {
-            const response = await sqlApi.execute(query, undefined, source)
+            // Use the new connection-based API
+            const response = await sqlApi.execute(query, selectedConnectionId)
             setResult(response.data)
         } catch (error: any) {
             setResult({
@@ -62,25 +68,11 @@ export const SQLEditor: React.FC = () => {
             <div className="sql-editor-header">
                 <h3>SQL Workspace</h3>
                 <div className="sql-editor-controls">
-                    <div className="source-selector" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-                        <label htmlFor="source-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>💾 Source:</label>
-                        <select
-                            id="source-select"
-                            value={source}
-                            onChange={(e) => setSource(e.target.value as any)}
-                            style={{
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                border: '1px solid #444',
-                                background: '#222',
-                                color: '#eee',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            <option value="postgres">PostgreSQL</option>
-                            <option value="duckdb">DuckDB (Files)</option>
-                        </select>
-                    </div>
+                    <ConnectionSelector
+                        selectedConnectionId={selectedConnectionId}
+                        onConnectionChange={setSelectedConnectionId}
+                        showHealthStatus={true}
+                    />
                     <AIModelSelector />
                     <button
                         className={`btn btn-sm ${showAiInput ? 'btn-active' : ''}`}

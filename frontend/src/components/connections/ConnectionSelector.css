@@ -1,0 +1,59 @@
+/* Connection Selector Styles */
+.connection-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.selector-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.selector-label i {
+    color: var(--primary-color);
+}
+
+.connection-select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.connection-select:hover {
+    border-color: var(--primary-color);
+}
+
+.connection-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.connection-selector.loading,
+.connection-selector.empty {
+    padding: 0.75rem;
+    text-align: center;
+    color: var(--text-secondary);
+    background: var(--hover-bg);
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.connection-selector.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #ff9800;
+}

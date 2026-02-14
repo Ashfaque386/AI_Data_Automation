@@ -94,8 +94,8 @@ export const datasetsApi = {
 
 // SQL API
 export const sqlApi = {
-    execute: (query: string, limit?: number, source?: string) =>
-        api.post('/sql/execute', { query, limit, source }),
+    execute: (query: string, connection_id?: number, limit?: number) =>
+        api.post('/sql/execute', { query, connection_id, limit }),
 
     explain: (query: string) =>
         api.post('/sql/explain', { query }),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import DatabaseConnectionsPage from './DatabaseConnectionsPage'
 import { setupApi, aiApi } from '../services/api'
 import { useAppStore } from '../store'
 import './Settings.css'
@@ -11,6 +12,9 @@ interface AIProvider {
 }
 
 export const Settings: React.FC = () => {
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'connections' | 'ai'>('connections')
+
     // DB State
     const [dbConfig, setDbConfig] = useState({
         host: 'host.docker.internal',
@@ -159,7 +163,7 @@ export const Settings: React.FC = () => {
             setAiTestResult(result.data)
             if (result.data.success) {
                 // Don't pass key as preservedModel. Keep current selectedModel.
-                loadModels(activeProvider, selectedModel)
+                loadModels(activeProvider, selectedModel || undefined)
             }
         } catch (e: any) {
             setAiTestResult({ success: false, message: e.response?.data?.message || 'Connection failed' })
@@ -251,232 +255,257 @@ export const Settings: React.FC = () => {
         <div className="settings-container">
             <h1>System Settings</h1>
 
-            <div className="settings-section">
-                <div className="section-header">
-                    <h2>🗄️ Database Configuration</h2>
-                    <span className={`status-badge ${currentDbStatus ? 'connected' : 'disconnected'}`}>
-                        {currentDbStatus ? 'Active' : 'Not Configured'}
-                    </span>
-                </div>
-
-                {!showDbForm && currentDbStatus ? (
-                    <div className="connection-summary fade-in">
-                        <div className="alert alert-success">
-                            <strong>✓ System is connected to PostgreSQL.</strong>
-                            <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', opacity: 0.9 }}>
-                                You can query data in the SQL Workspace.
-                            </p>
-                        </div>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => setShowDbForm(true)}
-                        >
-                            ⚙️ Reconfigure / Switch Database
-                        </button>
-                    </div>
-                ) : (
-                    <div className="connection-form fade-in">
-                        {currentDbStatus && (
-                            <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>Re-enter credentials to switch or update database connection.</span>
-                                    <button
-                                        className="btn btn-sm"
-                                        onClick={() => setShowDbForm(false)}
-                                        style={{ background: 'transparent', border: '1px solid currentColor' }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label>Host</label>
-                                <input
-                                    type="text"
-                                    value={dbConfig.host}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, host: e.target.value })}
-                                    placeholder="host.docker.internal"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Port</label>
-                                <input
-                                    type="number"
-                                    value={dbConfig.port}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, port: parseInt(e.target.value) })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>User</label>
-                                <input
-                                    type="text"
-                                    value={dbConfig.user}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, user: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input
-                                    type="password"
-                                    value={dbConfig.password}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, password: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="action-row">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={handleTestConnection}
-                                disabled={isTesting}
-                            >
-                                {isTesting ? 'Testing...' : 'Test Connection'}
-                            </button>
-                        </div>
-
-                        {testResult && (
-                            <div className={`alert ${testResult.success ? 'alert-success' : 'alert-error'}`}>
-                                {testResult.message}
-                            </div>
-                        )}
-
-                        {availableDbs.length > 0 && (
-                            <div className="db-selection slide-in">
-                                <div className="form-group">
-                                    <label>Select Database</label>
-                                    <select
-                                        value={dbConfig.database}
-                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDbConfig({ ...dbConfig, database: e.target.value })}
-                                    >
-                                        {availableDbs.map((db: string) => (
-                                            <option key={db} value={db}>{db}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleSaveDb}
-                                    disabled={isSaving}
-                                >
-                                    {isSaving ? 'Saving...' : 'Save Configuration'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+            <div className="settings-tabs">
+                <button
+                    className={`tab ${activeTab === 'connections' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('connections')}
+                >
+                    Database Connections
+                </button>
+                <button
+                    className={`tab ${activeTab === 'ai' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai')}
+                >
+                    AI Configuration
+                </button>
             </div>
 
-            <div className="settings-section">
-                <div className="section-header">
-                    <h2>🤖 AI Configuration</h2>
-                    <span className={`status-badge ${aiMode === 'local' || availableModels.length > 0 ? 'connected' : 'disconnected'}`}>
-                        {aiMode === 'local' ? 'Local' : 'Cloud'}
-                    </span>
-                </div>
+            <div className="tab-content">
+                {activeTab === 'connections' && (
+                    <>
+                        <DatabaseConnectionsPage />
 
-                <div className="ai-mode-selection">
-                    <label>AI Provider Type</label>
-                    <div className="radio-group">
-                        <label className="radio-option">
-                            <input
-                                type="radio"
-                                name="aiMode"
-                                value="local"
-                                checked={aiMode === 'local'}
-                                onChange={() => handleAiModeChange('local')}
-                            />
-                            <span>Local (Ollama)</span>
-                        </label>
-                        <label className="radio-option">
-                            <input
-                                type="radio"
-                                name="aiMode"
-                                value="cloud"
-                                checked={aiMode === 'cloud'}
-                                onChange={() => handleAiModeChange('cloud')}
-                            />
-                            <span>Cloud AI</span>
-                        </label>
-                    </div>
-                </div>
+                        <div className="settings-section" style={{ marginTop: '2rem' }}>
+                            <div className="section-header">
+                                <h2>🔌 Default Database Connection</h2>
+                                <span className={`status-badge ${currentDbStatus ? 'connected' : 'disconnected'}`}>
+                                    {currentDbStatus ? 'Active' : 'Not Configured'}
+                                </span>
+                            </div>
 
-                {aiMode === 'cloud' && (
-                    <div className="form-group fade-in">
-                        <label>Select Cloud Provider</label>
-                        <select
-                            value={cloudProvider}
-                            onChange={(e) => handleCloudProviderChange(e.target.value)}
-                        >
-                            {cloudProviders.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                            {!showDbForm && currentDbStatus ? (
+                                <div className="connection-summary fade-in">
+                                    <div className="alert alert-success">
+                                        <strong>✓ Default database connected.</strong>
+                                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', opacity: 0.9 }}>
+                                            This connection is available in the SQL Workspace.
+                                        </p>
+                                    </div>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowDbForm(true)}
+                                    >
+                                        ⚙️ Reconfigure / Switch Database
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="connection-form fade-in">
+                                    {currentDbStatus && (
+                                        <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span>Re-enter credentials to switch or update database connection.</span>
+                                                <button
+                                                    className="btn btn-sm"
+                                                    onClick={() => setShowDbForm(false)}
+                                                    style={{ background: 'transparent', border: '1px solid currentColor' }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="form-grid">
+                                        <div className="form-group">
+                                            <label>Host</label>
+                                            <input
+                                                type="text"
+                                                value={dbConfig.host}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, host: e.target.value })}
+                                                placeholder="host.docker.internal"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Port</label>
+                                            <input
+                                                type="number"
+                                                value={dbConfig.port}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, port: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>User</label>
+                                            <input
+                                                type="text"
+                                                value={dbConfig.user}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, user: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Password</label>
+                                            <input
+                                                type="password"
+                                                value={dbConfig.password}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDbConfig({ ...dbConfig, password: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="action-row">
+                                        <button
+                                            className="btn btn-secondary"
+                                            onClick={handleTestConnection}
+                                            disabled={isTesting}
+                                        >
+                                            {isTesting ? 'Testing...' : 'Test Connection'}
+                                        </button>
+                                    </div>
+
+                                    {testResult && (
+                                        <div className={`alert ${testResult.success ? 'alert-success' : 'alert-error'}`}>
+                                            {testResult.message}
+                                        </div>
+                                    )}
+
+                                    {availableDbs.length > 0 && (
+                                        <div className="db-selection slide-in">
+                                            <div className="form-group">
+                                                <label>Select Database</label>
+                                                <select
+                                                    value={dbConfig.database}
+                                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDbConfig({ ...dbConfig, database: e.target.value })}
+                                                >
+                                                    {availableDbs.map((db: string) => (
+                                                        <option key={db} value={db}>{db}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={handleSaveDb}
+                                                disabled={isSaving}
+                                            >
+                                                {isSaving ? 'Saving...' : 'Save Configuration'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
 
-                <div className="ai-config-form fade-in" key={aiMode + cloudProvider}>
-                    {aiMode === 'cloud' && (
-                        <div className="form-group">
-                            <label>API Key</label>
-                            <input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                                placeholder={`Enter ${cloudProviders.find(p => p.id === cloudProvider)?.name} API Key`}
-                            />
-                            <small>Key is stored securely. Leave blank if unchanged.</small>
+                {activeTab === 'ai' && (
+                    <div className="settings-section">
+                        <div className="section-header">
+                            <h2>🤖 AI Configuration</h2>
+                            <span className={`status-badge ${aiMode === 'local' || availableModels.length > 0 ? 'connected' : 'disconnected'}`}>
+                                {aiMode === 'local' ? 'Local' : 'Cloud'}
+                            </span>
                         </div>
-                    )}
 
-                    <div className="form-group">
-                        <label>Select Model</label>
-                        {availableModels.length > 0 ? (
-                            <select
-                                value={selectedModel || ''}
-                                onChange={(e) => setSelectedModel(e.target.value)}
-                            >
-                                {availableModels.map((model: string) => (
-                                    <option key={model} value={model}>
-                                        {model}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            <div className="no-models">
-                                {aiMode === 'local' ?
-                                    'No local models found. Ensure Ollama is running.' :
-                                    'Enter API Key and Test Connection to load models.'}
+                        <div className="ai-mode-selection">
+                            <label>AI Provider Type</label>
+                            <div className="radio-group">
+                                <label className="radio-option">
+                                    <input
+                                        type="radio"
+                                        name="aiMode"
+                                        value="local"
+                                        checked={aiMode === 'local'}
+                                        onChange={() => handleAiModeChange('local')}
+                                    />
+                                    <span>Local (Ollama)</span>
+                                </label>
+                                <label className="radio-option">
+                                    <input
+                                        type="radio"
+                                        name="aiMode"
+                                        value="cloud"
+                                        checked={aiMode === 'cloud'}
+                                        onChange={() => handleAiModeChange('cloud')}
+                                    />
+                                    <span>Cloud AI</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {aiMode === 'cloud' && (
+                            <div className="form-group fade-in">
+                                <label>Select Cloud Provider</label>
+                                <select
+                                    value={cloudProvider}
+                                    onChange={(e) => handleCloudProviderChange(e.target.value)}
+                                >
+                                    {cloudProviders.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         )}
-                    </div>
 
-                    <div className="action-row">
-                        <button
-                            className="btn btn-secondary"
-                            onClick={handleAiTest}
-                            disabled={isAiTesting}
-                        >
-                            {isAiTesting ? 'Testing...' : 'Test Connection'}
-                        </button>
+                        <div className="ai-config-form fade-in" key={aiMode + cloudProvider}>
+                            {aiMode === 'cloud' && (
+                                <div className="form-group">
+                                    <label>API Key</label>
+                                    <input
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder={`Enter ${cloudProviders.find(p => p.id === cloudProvider)?.name} API Key`}
+                                    />
+                                    <small>Key is stored securely. Leave blank if unchanged.</small>
+                                </div>
+                            )}
 
-                        <button
-                            className="btn btn-primary"
-                            onClick={handleAiSave}
-                            disabled={isAiSaving}
-                        >
-                            {isAiSaving ? 'Saving...' : 'Save Configuration'}
-                        </button>
-                    </div>
+                            <div className="form-group">
+                                <label>Select Model</label>
+                                {availableModels.length > 0 ? (
+                                    <select
+                                        value={selectedModel || ''}
+                                        onChange={(e) => setSelectedModel(e.target.value)}
+                                    >
+                                        {availableModels.map((model: string) => (
+                                            <option key={model} value={model}>
+                                                {model}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="no-models">
+                                        {aiMode === 'local' ?
+                                            'No local models found. Ensure Ollama is running.' :
+                                            'Enter API Key and Test Connection to load models.'}
+                                    </div>
+                                )}
+                            </div>
 
-                    {aiTestResult && (
-                        <div className={`alert ${aiTestResult.success ? 'alert-success' : 'alert-error'}`} style={{ marginTop: '1rem' }}>
-                            {aiTestResult.message}
+                            <div className="action-row">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleAiTest}
+                                    disabled={isAiTesting}
+                                >
+                                    {isAiTesting ? 'Testing...' : 'Test Connection'}
+                                </button>
+
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleAiSave}
+                                    disabled={isAiSaving}
+                                >
+                                    {isAiSaving ? 'Saving...' : 'Save Configuration'}
+                                </button>
+                            </div>
+
+                            {aiTestResult && (
+                                <div className={`alert ${aiTestResult.success ? 'alert-success' : 'alert-error'}`} style={{ marginTop: '1rem' }}>
+                                    {aiTestResult.message}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     )

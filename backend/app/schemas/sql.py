@@ -22,6 +22,7 @@ class SQLRequest(BaseModel):
     timeout_seconds: Optional[int] = Field(default=30, le=300)
     explain: bool = False
     source: str = Field(default="duckdb", description="Execution engine: 'duckdb' or 'postgres'")
+    connection_id: Optional[int] = None
 
 
 class SQLResultColumn(BaseModel):

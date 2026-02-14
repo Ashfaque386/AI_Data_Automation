@@ -1,11 +1,56 @@
 """
 Audit Log Model
 """
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+import enum
 
 from app.database import Base
+
+
+class AuditActionType(str, enum.Enum):
+    """Types of auditable actions"""
+    # Connection Management
+    CONNECTION_CREATE = "connection_create"
+    CONNECTION_UPDATE = "connection_update"
+    CONNECTION_DELETE = "connection_delete"
+    CONNECTION_ACTIVATE = "connection_activate"
+    CONNECTION_DEACTIVATE = "connection_deactivate"
+    CONNECTION_TEST = "connection_test"
+    
+    # Query Operations
+    QUERY_EXECUTE = "query_execute"
+    QUERY_EXPLAIN = "query_explain"
+    
+    # Schema Operations
+    SCHEMA_LIST = "schema_list"
+    SCHEMA_ACCESS = "schema_access"
+    TABLE_LIST = "table_list"
+    TABLE_ACCESS = "table_access"
+    TABLE_CREATE = "table_create"
+    TABLE_DROP = "table_drop"
+    
+    # Permission Management
+    PERMISSION_GRANT = "permission_grant"
+    PERMISSION_REVOKE = "permission_revoke"
+    PERMISSION_VIEW = "permission_view"
+    
+    # Data Operations
+    DATA_IMPORT = "data_import"
+    DATA_EXPORT = "data_export"
+    DATA_INSERT = "data_insert"
+    DATA_UPDATE = "data_update"
+    DATA_DELETE = "data_delete"
+    
+    # Health & Monitoring
+    HEALTH_CHECK = "health_check"
+    CAPABILITY_DETECT = "capability_detect"
+    
+    # Authentication
+    USER_LOGIN = "user_login"
+    USER_LOGOUT = "user_logout"
+    USER_LOGIN_FAILED = "user_login_failed"
 
 
 class AuditLog(Base):
@@ -15,14 +60,19 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Actor
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), index=True)
     user_email = Column(String(255))  # Denormalized for historical tracking
     ip_address = Column(String(50))
     user_agent = Column(String(500))
     
+    # Connection context
+    connection_id = Column(Integer, ForeignKey('connection_profiles.id', ondelete='SET NULL'), nullable=True, index=True)
+    connection_name = Column(String(255))  # Denormalized
+    
     # Action
-    action = Column(String(100), nullable=False, index=True)
-    resource_type = Column(String(100), index=True)  # 'dataset', 'user', 'query', etc.
+    action = Column(String(100), nullable=False, index=True)  # For backward compatibility
+    action_type = Column(SQLEnum(AuditActionType), nullable=True, index=True)  # New structured field
+    resource_type = Column(String(100), index=True)  # 'dataset', 'user', 'query', 'connection', etc.
     resource_id = Column(String(100))
     resource_name = Column(String(255))
     
@@ -43,6 +93,7 @@ class AuditLog(Base):
     
     # Relationships
     user = relationship("User", back_populates="audit_logs")
+    connection = relationship("ConnectionProfile", foreign_keys=[connection_id])
 
 
 class QueryHistory(Base):

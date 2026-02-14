@@ -59,7 +59,39 @@
     border: 1px solid var(--color-error);
     border-radius: 4px;
     color: var(--color-error);
+    color: var(--color-error);
     font-size: 13px;
+}
+
+/* Ensure inputs are visible and handle autofill */
+.login-form input {
+    background: #1e2228 !important;
+    border: 1px solid var(--color-border);
+    color: #e1e4e8 !important;
+    padding: 0.75rem;
+    font-size: 14px;
+}
+
+.login-form input::placeholder {
+    color: #6e7681;
+    opacity: 1;
+}
+
+.login-form input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Fix for Chrome/Edge autofill in dark mode */
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus,
+.login-form input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1e2228 inset !important;
+    -webkit-text-fill-color: #e1e4e8 !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #e1e4e8;
 }
 
 .btn-block {

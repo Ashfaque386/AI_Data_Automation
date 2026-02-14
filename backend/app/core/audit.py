@@ -32,7 +32,8 @@ class AuditLogger:
         duration_ms: Optional[int] = None,
         rows_affected: Optional[int] = None,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        connection_id: Optional[int] = None
     ) -> AuditLog:
         """Create an audit log entry."""
         audit = AuditLog(
@@ -49,7 +50,8 @@ class AuditLogger:
             status=status,
             error_message=error_message,
             duration_ms=duration_ms,
-            rows_affected=rows_affected
+            rows_affected=rows_affected,
+            connection_id=connection_id
         )
         
         self.db.add(audit)
@@ -63,7 +65,8 @@ class AuditLogger:
             user_email=user.email if user else None,
             resource_type=resource_type,
             resource_id=resource_id,
-            status=status
+            status=status,
+            connection_id=connection_id
         )
         
         return audit
@@ -93,7 +96,7 @@ class AuditLogger:
     
     def log_query(self, user: User, query: str, duration_ms: int, 
                   rows_affected: int = 0, success: bool = True, 
-                  error: str = None):
+                  error: str = None, connection_id: int = None):
         """Log SQL query execution."""
         return self.log(
             action="query_execute",
@@ -103,7 +106,8 @@ class AuditLogger:
             status="success" if success else "failure",
             error_message=error,
             duration_ms=duration_ms,
-            rows_affected=rows_affected
+            rows_affected=rows_affected,
+            connection_id=connection_id
         )
     
     def log_export(self, user: User, dataset_name: str, dataset_id: int,
@@ -142,7 +146,7 @@ class QueryHistoryManager:
         normalized = " ".join(query.lower().split())
         return hashlib.sha256(normalized.encode()).hexdigest()
     
-    def record_query(self, user_id: int, query: str, duration_ms: int) -> QueryHistory:
+    def record_query(self, user_id: int, query: str, duration_ms: int, connection_id: int = None) -> QueryHistory:
         """Record a query execution."""
         query_hash = self._hash_query(query)
         

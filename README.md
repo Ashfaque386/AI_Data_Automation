@@ -18,6 +18,7 @@ A production-grade, local-first data operations console combining the ease of Ex
 ### ⚡ SQL Workspace
 - **Integrated SQL Editor**: Write and execute queries against your User Operational Database.
 - **High Performance**: Execute complex queries with full PostgreSQL/MySQL support.
+- **MongoDB Query Interface**: Native MongoDB query builder with aggregation pipeline support.
 - **Strict Isolation**: SQL queries execute only on User DB, never on App DB.
 
 ### ✏️ Advanced Data Editing
@@ -42,6 +43,12 @@ A production-grade, local-first data operations console combining the ease of Ex
 - **Local AI Integration**: Connects to **Ollama** running on your host machine.
 - **Privacy First**: Your data never leaves your environment.
 - **Dynamic Configuration**: Switch between AI models on the fly via Settings.
+
+### 🔐 Enterprise Security & Governance
+- **Audit Logging**: Complete audit trail for all operations.
+- **Connection-Level RBAC**: Fine-grained access control per database connection.
+- **Schema Restrictions**: Limit access to specific schemas and tables.
+- **Credential Security**: Encrypted credentials with rotation and expiration tracking.
 
 ---
 
@@ -81,6 +88,7 @@ This platform uses a **strict dual database architecture** for enhanced security
 1. **Docker Desktop** (running)
 2. **PostgreSQL** (installed on host, port 5432)
 3. **Ollama** (optional, for AI features)
+4. **MongoDB** (optional, for NoSQL support)
 
 ### Setup & Run
 
@@ -103,6 +111,13 @@ This platform uses a **strict dual database architecture** for enhanced security
    - Enter your User Operational DB credentials
    - Click "Test Connection" then "Save Configuration"
 
+5. **Add MongoDB Connection** (optional):
+   - Navigate to Database Connections
+   - Click "Add Connection"
+   - Select "MongoDB" as database type
+   - Enter connection details or MongoDB URI
+   - Test and save connection
+
 ---
 
 ## 🔧 Configuration
@@ -124,6 +139,13 @@ Configure via **Settings → Database Configuration** in the UI:
 - **Port**: Database port (default: 5432)
 - **User/Password**: Database credentials
 - **Database**: Select from available databases
+
+### MongoDB Connections
+
+Add MongoDB connections via **Database Connections** page:
+- **Standard Connection**: Host, port, username, password, database
+- **MongoDB URI**: Full connection string (supports MongoDB Atlas)
+- **SSL/TLS**: Enable for secure connections
 
 ---
 
@@ -159,7 +181,7 @@ docker-compose down -v
 | **Frontend** | React, TypeScript, TanStack Query, Vite |
 | **Backend** | FastAPI (Python), SQLAlchemy |
 | **App Database** | PostgreSQL (users, metadata, audit) |
-| **User Database** | PostgreSQL/MySQL (configurable) |
+| **User Database** | PostgreSQL/MySQL/MongoDB (configurable) |
 | **Analytics** | DuckDB (in-memory) |
 | **AI** | Ollama (local LLM) |
 

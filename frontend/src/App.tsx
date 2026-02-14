@@ -9,6 +9,8 @@ import { FilesPage } from './pages/FilesPage'
 import { DataImport } from './pages/DataImport'
 import { TableEntryPage } from './pages/TableEntryPage'
 import { JobsPage } from './pages/JobsPage';
+import DatabaseConnectionsPage from './pages/DatabaseConnectionsPage';
+import { AuditLogsPage } from './pages/AuditLogsPage';
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { useAuthStore } from './store'
@@ -137,7 +139,21 @@ const App: React.FC = () => {
                         <Route path="/table-entry" element={<ProtectedRoute><></></ProtectedRoute>} />
                         <Route path="/jobs" element={<ProtectedRoute><></></ProtectedRoute>} />
 
-                        <Route path="/audit" element={<ProtectedRoute><div className="page-placeholder">Audit Logs (Coming Soon)</div></ProtectedRoute>} />
+                        <Route path="/connections" element={
+                            <ProtectedRoute>
+                                <div className="workspace-content">
+                                    <DatabaseConnectionsPage />
+                                </div>
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/audit" element={
+                            <ProtectedRoute>
+                                <div className="workspace-content">
+                                    <AuditLogsPage />
+                                </div>
+                            </ProtectedRoute>
+                        } />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

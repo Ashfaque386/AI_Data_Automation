@@ -13,6 +13,7 @@ export interface ConnectionInfo {
     host: string
     database: string
     is_active: boolean
+    status?: string
 }
 
 export interface ColumnMetadata {
@@ -141,4 +142,3 @@ export const tableEntryApi = {
         return response.data.logs
     }
 }
-

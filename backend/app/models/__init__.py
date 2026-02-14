@@ -1,25 +1,78 @@
 """
-Models Package
+Models Package - Export all SQLAlchemy models
 """
 from app.models.user import User, Role, Permission, RefreshToken
 from app.models.dataset import Dataset, DatasetColumn, DatasetVersion, DatasetPermission, DatasetStatus, ColumnType
-from app.models.audit import AuditLog, QueryHistory, TableEntryAudit
-from app.models.job import ScheduledJob, JobExecution, JobType, JobStatus, JobParameter, BackupConfiguration, BackupType
-from app.models.ai_config import AIConfig
 from app.models.dataset_change import DatasetChange
 from app.models.dataset_lock import DatasetLock
-from app.models.connection import ConnectionProfile
 from app.models.import_job import ImportJob, ImportMapping, ImportAuditLog
+from app.models.audit import AuditLog, QueryHistory, TableEntryAudit, AuditActionType
+from app.models.ai_config import AIConfig
+from app.models.connection import (
+    ConnectionProfile,
+    ConnectionType,
+    ConnectionGroup,
+    ConnectionMode,
+    HealthStatus
+)
+from app.models.connection_health import ConnectionHealthLog
+from app.models.connection_permission import ConnectionPermission
+from app.models.job import (
+    ScheduledJob,
+    JobExecution,
+    JobParameter,
+    JobType,
+    JobStatus,
+    BackupConfiguration,
+    BackupType
+)
 
 __all__ = [
-    "User", "Role", "Permission", "RefreshToken",
-    "Dataset", "DatasetColumn", "DatasetVersion", "DatasetPermission", "DatasetStatus", "ColumnType",
-    "AuditLog", "QueryHistory", "TableEntryAudit",
-    "ScheduledJob", "JobExecution", "JobType", "JobStatus", "JobParameter", "BackupConfiguration", "BackupType",
+    # User & Auth
+    "User",
+    "Role",
+    "Permission",
+    "RefreshToken",
+    
+    # Datasets
+    "Dataset",
+    "DatasetColumn",
+    "DatasetVersion",
+    "DatasetPermission",
+    "DatasetStatus",
+    "ColumnType",
+    "DatasetChange",
+    "DatasetLock",
+    
+    # Import
+    "ImportJob",
+    "ImportMapping",
+    "ImportAuditLog",
+    
+    # Audit
+    "AuditLog",
+    "AuditActionType",
+    "QueryHistory",
+    "TableEntryAudit",
+    
+    # AI
     "AIConfig",
-    "DatasetChange", "DatasetLock",
+    
+    # Connections
     "ConnectionProfile",
-    "ImportJob", "ImportMapping", "ImportAuditLog"
+    "ConnectionType",
+    "ConnectionGroup",
+    "ConnectionMode",
+    "HealthStatus",
+    "ConnectionHealthLog",
+    "ConnectionPermission",
+    
+    # Jobs
+    "ScheduledJob",
+    "JobExecution",
+    "JobParameter",
+    "JobType",
+    "JobStatus",
+    "BackupConfiguration",
+    "BackupType",
 ]
-
-
